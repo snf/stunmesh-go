@@ -1,0 +1,102 @@
+{
+  "audit_platform": "GOOS=android GOARCH=arm64 CGO_ENABLED=1; tags mobile,builtin_all",
+  "source_root": "github.com/tjjh89017/stunmesh-go/mobile",
+  "reachable_packages": 264,
+  "external_modules": 15,
+  "shortest_import_paths_by_module": {
+    "github.com/go-viper/mapstructure/v2": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/plugin",
+      "github.com/go-viper/mapstructure/v2"
+    ],
+    "github.com/google/wire": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/crypto",
+      "github.com/google/wire"
+    ],
+    "github.com/mattn/go-colorable": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/rs/zerolog",
+      "github.com/mattn/go-colorable"
+    ],
+    "github.com/mattn/go-isatty": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/rs/zerolog",
+      "github.com/mattn/go-colorable",
+      "github.com/mattn/go-isatty"
+    ],
+    "github.com/mdlayher/genetlink": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/wg",
+      "golang.zx2c4.com/wireguard/wgctrl",
+      "golang.zx2c4.com/wireguard/wgctrl/internal/wglinux",
+      "github.com/mdlayher/genetlink"
+    ],
+    "github.com/mdlayher/netlink": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/wg",
+      "golang.zx2c4.com/wireguard/wgctrl",
+      "golang.zx2c4.com/wireguard/wgctrl/internal/wglinux",
+      "github.com/mdlayher/netlink"
+    ],
+    "github.com/mdlayher/socket": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/wg",
+      "golang.zx2c4.com/wireguard/wgctrl",
+      "golang.zx2c4.com/wireguard/wgctrl/internal/wglinux",
+      "github.com/mdlayher/netlink",
+      "github.com/mdlayher/socket"
+    ],
+    "github.com/rs/zerolog": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/rs/zerolog"
+    ],
+    "go.yaml.in/yaml/v3": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/config",
+      "go.yaml.in/yaml/v3"
+    ],
+    "golang.org/x/crypto": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "golang.org/x/crypto/curve25519"
+    ],
+    "golang.org/x/net": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "golang.org/x/net/icmp"
+    ],
+    "golang.org/x/sync": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/wg",
+      "golang.zx2c4.com/wireguard/wgctrl",
+      "golang.zx2c4.com/wireguard/wgctrl/internal/wglinux",
+      "github.com/mdlayher/netlink",
+      "github.com/mdlayher/socket",
+      "golang.org/x/sync/errgroup"
+    ],
+    "golang.org/x/sys": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "golang.zx2c4.com/wireguard/device",
+      "golang.org/x/sys/unix"
+    ],
+    "golang.zx2c4.com/wireguard": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "golang.zx2c4.com/wireguard/device"
+    ],
+    "golang.zx2c4.com/wireguard/wgctrl": [
+      "github.com/tjjh89017/stunmesh-go/mobile",
+      "github.com/tjjh89017/stunmesh-go/internal/ctrl",
+      "github.com/tjjh89017/stunmesh-go/internal/wg",
+      "golang.zx2c4.com/wireguard/wgctrl"
+    ]
+  },
+  "method": "Go 1.27.1 go list -deps -json; shortest package-import path, not proof of linked machine code or execution"
+}
