@@ -1,0 +1,7 @@
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditCleanEndpointRefreshDoesNotRemoveInjectedPeer
+    audit_security_test.go:234: DEMONSTRATED: a clean endpoint refresh leaves the unlisted peer and stolen route installed
+--- PASS: TestAuditCleanEndpointRefreshDoesNotRemoveInjectedPeer (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.021s

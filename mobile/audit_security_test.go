@@ -183,6 +183,57 @@ func TestAuditRejectedEndpointUAPIStillChangesPeerSet(t *testing.T) {
 	t.Log("DEMONSTRATED: a rejected endpoint UAPI update still leaves its earlier injected peer and route installed")
 }
 
+// A later well-formed discovery record updates only the listed peer's endpoint;
+// it does not undo peer/route mutations made by a previous malicious record.
+// Endpoint refresh is therefore not a cleanup mechanism for the UAPI attack.
+func TestAuditCleanEndpointRefreshDoesNotRemoveInjectedPeer(t *testing.T) {
+	local, legitimate, rogue := auditKey(t), auditKey(t), auditKey(t)
+	legitimatePub, roguePub := legitimate.PublicKey(), rogue.PublicKey()
+	cfg := &tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{
+			PublicKey:  legitimatePub.String(),
+			AllowedIPs: []string{"10.89.0.2/32"},
+		}},
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	initial, err := buildUAPI(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(initial); err != nil {
+		t.Fatal(err)
+	}
+	malicious := "127.0.0.1:9\npublic_key=" + auditHex(roguePub) + "\nallowed_ip=10.89.0.2/32"
+	update, err := buildPeerEndpointUAPI(legitimatePub.String(), malicious)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(update); err != nil {
+		t.Fatal(err)
+	}
+	clean, err := buildPeerEndpointUAPI(legitimatePub.String(), "127.0.0.1:10")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(clean); err != nil {
+		t.Fatal(err)
+	}
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+auditHex(roguePub)) {
+		t.Fatalf("well-formed refresh unexpectedly removed the injected peer: %q", got)
+	}
+	rogueBlock := strings.SplitN(strings.SplitN(got, "public_key="+auditHex(roguePub)+"\n", 2)[1], "\npublic_key=", 2)[0]
+	if !strings.Contains("\n"+rogueBlock+"\n", "\nallowed_ip=10.89.0.2/32\n") {
+		t.Fatalf("well-formed refresh unexpectedly restored the route: %q", got)
+	}
+	t.Log("DEMONSTRATED: a clean endpoint refresh leaves the unlisted peer and stolen route installed")
+}
+
 // Imported profile fields take a second path to UAPI before discovery runs.
 // A newline hidden in allowed_ips can add a peer even if the dynamic endpoint
 // update is fixed; the app's displayed peer list still contains only one.
