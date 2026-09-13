@@ -1,7 +1,6 @@
 {
   "audit_platform": "GOOS=android GOARCH=arm64 CGO_ENABLED=1; tags mobile,builtin_all",
   "source_root": "github.com/tjjh89017/stunmesh-go/mobile",
-  "reachable_packages": 264,
   "external_modules": 15,
   "shortest_import_paths_by_module": {
     "github.com/go-viper/mapstructure/v2": [
@@ -98,5 +97,7 @@
       "golang.zx2c4.com/wireguard/wgctrl"
     ]
   },
-  "method": "Go 1.27.1 go list -deps -json; shortest package-import path, not proof of linked machine code or execution"
+  "method": "Go 1.27.1 go list -deps -json; shortest package-import path, not proof of linked machine code or execution; 264 dependencies plus the mobile root package = 265 total, cross-checked with go list -deps on 2026-09-13",
+  "reachable_packages_excluding_source_root": 264,
+  "total_packages_including_source_root": 265
 }
