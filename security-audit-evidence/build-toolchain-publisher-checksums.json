@@ -1,0 +1,42 @@
+{
+  "checked_utc": "2026-09-13T10:43:25.343969+00:00",
+  "items": [
+    {
+      "algorithm": "sha256",
+      "file": "go1.27.1.linux-amd64.tar.gz",
+      "local_digest": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+      "match": true,
+      "publisher_digest": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+      "publisher_metadata": "https://go.dev/dl/?mode=json&include=all",
+      "tool": "Go 1.27.1 Linux amd64"
+    },
+    {
+      "algorithm": "sha256",
+      "file": "OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz",
+      "local_digest": "ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94",
+      "match": true,
+      "publisher_digest": "ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94",
+      "publisher_metadata": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz.sha256.txt",
+      "tool": "Eclipse Temurin JDK 21.0.12.1+1"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "commandlinetools-linux-13114758_latest.zip",
+      "local_digest": "5fdcc763663eefb86a5b8879697aa6088b041e70",
+      "match": true,
+      "publisher_digest": "5fdcc763663eefb86a5b8879697aa6088b041e70",
+      "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
+      "tool": "Android SDK command-line tools"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "commandlinetools-linux-16111833_latest.zip",
+      "local_digest": "e025545c62a8e64c7559119566a569fb1dec5f60",
+      "match": true,
+      "publisher_digest": "e025545c62a8e64c7559119566a569fb1dec5f60",
+      "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
+      "tool": "Android SDK command-line tools"
+    }
+  ],
+  "scope": "Downloaded build-tool archives only; matches publisher-served checksum metadata over HTTPS, not independent code or signing-key audit"
+}
