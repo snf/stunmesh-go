@@ -1,0 +1,13 @@
+2026-09-13. Isolated bubblewrap namespace, no external network or production keys.
+
+Target: mobile/FuzzAuditMobileConfigDecode
+Invocation: go test -tags security_audit,builtin_all,mobile -run '^$'
+  -fuzz=FuzzAuditMobileConfigDecode -fuzztime=1h -parallel=4 ./mobile
+Result: PASS; 100,219,138 executions over 3601.065 seconds; no crash.
+The complete raw Go fuzzer log is retained in the separate local audit
+scratch workspace at evidence/mobile-config-fuzz-guided-1h.txt.
+
+The harness decodes bounded imported JSON and renders its initial WireGuard
+UAPI string. It looks for panics/resource misuse. PASS does not mean that
+accepted input is safe: audit-only integration tests separately demonstrate
+newline-driven UAPI peer/route injection and plaintext packet delivery.
