@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "name": "wireguard-go",
+      "official_source": "https://git.zx2c4.com/wireguard-go",
+      "official_commit": "f333402bd9cbe0f3eeb02507bd14e23d7d639280",
+      "module_version": "v0.0.0-20250521234502-f333402bd9cb",
+      "method": "Clone official project, checkout module version commit, compare SHA-256 of every Git-tracked file against extracted Go module cache; compare file sets.",
+      "tracked_count": 107,
+      "module_file_count": 107,
+      "byte_identical_count": 107,
+      "missing_from_module": [],
+      "extra_in_module": [],
+      "mismatched": [],
+      "limitations": "This checks cached module source against official Git source at the same commit, not that the authors, source repository, or toolchain are benign."
+    },
+    {
+      "name": "wgctrl-go",
+      "official_source": "https://github.com/WireGuard/wgctrl-go",
+      "official_commit": "a9ab2273dd1075ea74b88c76f8757f8b4003fcbf",
+      "module_version": "v0.0.0-20241231184526-a9ab2273dd10",
+      "method": "Clone official project, checkout module version commit, compare SHA-256 of every Git-tracked file against extracted Go module cache; compare file sets.",
+      "tracked_count": 75,
+      "module_file_count": 75,
+      "byte_identical_count": 75,
+      "missing_from_module": [],
+      "extra_in_module": [],
+      "mismatched": [],
+      "limitations": "This checks cached module source against official Git source at the same commit, not that the authors, source repository, or toolchain are benign."
+    }
+  ]
+}
