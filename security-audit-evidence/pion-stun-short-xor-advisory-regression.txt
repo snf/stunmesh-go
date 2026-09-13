@@ -1,0 +1,6 @@
+==67==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==67==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditPinnedPionRejectsShortXORMappedAddress
+--- PASS: TestAuditPinnedPionRejectsShortXORMappedAddress (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	1.022s

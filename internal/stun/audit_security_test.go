@@ -139,3 +139,21 @@ func TestAuditRawSTUNFallbackCannotReadSecondReply(t *testing.T) {
 	}
 	t.Log("DEMONSTRATED: a valid reply from the second STUN server timed out after the first reply consumed the raw-socket listener")
 }
+
+// GHSA-34rh-wp3j-6cxc was a panic in older Pion versions when a decoded
+// XOR-MAPPED-ADDRESS attribute had zero bytes at the end of a tight buffer.
+// Exercise the actual STUNMESH response parser with the advisory's packet
+// shape to confirm that the pinned Pion v3.1.7 returns an error instead.
+func TestAuditPinnedPionRejectsShortXORMappedAddress(t *testing.T) {
+	raw := []byte{
+		0x01, 0x01, 0x00, 0x04, // Binding Success, one four-byte attribute header.
+		0x21, 0x12, 0xa4, 0x42, // STUN magic cookie.
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Transaction ID.
+		0x00, 0x20, 0x00, 0x00, // XOR-MAPPED-ADDRESS with zero-length value.
+	}
+	raw = raw[:len(raw):len(raw)]
+	host, port, err := parseBindingResponse(context.Background(), raw, [12]byte{})
+	if !errors.Is(err, ErrNoMappedAddress) || host != "" || port != 0 {
+		t.Fatalf("short XOR-MAPPED-ADDRESS: host=%q port=%d err=%v", host, port, err)
+	}
+}
