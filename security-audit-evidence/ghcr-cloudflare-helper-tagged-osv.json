@@ -1,5 +1,6 @@
 {
   "affected_linked_modules": [],
+  "go_mod_verify": "all modules verified (Go 1.27.1, tagged nested module, isolated offline check after checksum-verified downloads)",
   "graph": "v1.15.1 tagged contrib/cloudflare/go.mod",
   "hits": [
     {

@@ -76,14 +76,23 @@
         }
       },
       "config_digest": "sha256:7978c6a99998188f1fe883396a70c059ba8f47ca411d54158c497226ca496041",
+      "config_env": [
+        "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ],
       "config_user": null,
+      "entrypoint": null,
+      "exposed_ports": null,
+      "healthcheck": null,
       "layer_digests": [
         "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
         "sha256:6a74796f5d1df8ee652c8ce6c765e992c405765a0b1c47ff0081819e566e766f",
         "sha256:8fd7dc7aef6d153690e661debcf7c5d2b8b2fabe3acaae465111ef862edf13e8"
       ],
       "manifest_digest": "sha256:c3c80d62f825e15166ae5d772ce3440cea0b7f9147651bc42492bf8b140fe5c3",
-      "regular_files": 5
+      "onbuild": null,
+      "regular_files": 5,
+      "volumes": null,
+      "working_dir": "/app"
     },
     "arm-v7": {
       "cmd": [
@@ -117,14 +126,23 @@
         }
       },
       "config_digest": "sha256:2a82a4f7082b2e8f8628c4ce2fd798b2e3f987fa6a60843d9a67b52c9be18750",
+      "config_env": [
+        "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ],
       "config_user": null,
+      "entrypoint": null,
+      "exposed_ports": null,
+      "healthcheck": null,
       "layer_digests": [
         "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
         "sha256:f0d6a02dc8c45d00b7ec8012ce2058daf4d9372fa99332abe6a8e70984f14484",
         "sha256:e7ed828c0eface41cb1d7ed9149550a8cc48aac4d5709ed8c579a49fb77997b1"
       ],
       "manifest_digest": "sha256:1a67cb5934ce6b00079b361d7c46f8a58e3bebe49b400e1cc140a8c2fe8d4a97",
-      "regular_files": 5
+      "onbuild": null,
+      "regular_files": 5,
+      "volumes": null,
+      "working_dir": "/app"
     },
     "arm64": {
       "cmd": [
@@ -158,14 +176,23 @@
         }
       },
       "config_digest": "sha256:c648d4bc00798deb5d42c170408b13a7692e2b0021a987d78b8373aa417db6fa",
+      "config_env": [
+        "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ],
       "config_user": null,
+      "entrypoint": null,
+      "exposed_ports": null,
+      "healthcheck": null,
       "layer_digests": [
         "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
         "sha256:cddaec6f56e3e767c049042b1e800cb2aa6cf9774130361b4123bc023a7d7a95",
         "sha256:831f03eb78c5d6959af4592f22f825f01a92d239853f819758782bab2e399ddd"
       ],
       "manifest_digest": "sha256:24a97abeb16e0ca41d1d2001544226cc80cd1917a0d53cbbf93d959d9bd37ab6",
-      "regular_files": 5
+      "onbuild": null,
+      "regular_files": 5,
+      "volumes": null,
+      "working_dir": "/app"
     }
   }
 }
