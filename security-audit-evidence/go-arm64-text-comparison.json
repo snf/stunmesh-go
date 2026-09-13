@@ -1,0 +1,20 @@
+{
+  "abi": "arm64-v8a",
+  "upstream_go_aar_sha256": "c0de0320a9f13f70f3d0069abccb80035383a1fcb1f591d2362db58b2960e520",
+  "rebuilt_go_aar_sha256": "9c2df68879664a4815841a3e901109d1376cbd5f7d1e8a0da0dbbd3542a94310",
+  "text_section_bytes": 3210336,
+  "byte_differences": 65916,
+  "instruction_word_differences": 40357,
+  "word_difference_categories": {
+    "ADRP address displacement": 8283,
+    "ADR address displacement": 350,
+    "ADD immediate with same registers/opcode": 20956,
+    "load/store offset with same registers/opcode": 10768,
+    "other": 0
+  },
+  "decoded_go_functions": 7889,
+  "go_function_order_and_size_equal": true,
+  "identical_raw_function_hashes": 2897,
+  "runtime_text_bias": 96,
+  "limitation": "Identical opcodes/register fields and function sizes do not prove that all changed address/offset immediates resolve to the same data. Other ABI native text and toolchain internals were not exhaustively disassembled."
+}

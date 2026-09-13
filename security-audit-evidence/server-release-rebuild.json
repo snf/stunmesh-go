@@ -1,0 +1,25 @@
+{
+  "source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "source_tag": "v1.15.1",
+  "toolchain": "go1.27.1",
+  "build": "CGO_ENABLED=0 go build -trimpath -tags <tags> -ldflags \"-s -w\" .",
+  "isolated": "bwrap without home/SSH/GitHub token/network; source read-only, dependency/build cache writable",
+  "assets": [
+    {
+      "name": "stunmesh-linux-amd64-v1.15.1",
+      "release_sha256": "d57409d6fc4a34e5ba66160d51dc85635bb8b261038ae59c49f424e8bd68777b",
+      "rebuild_sha256": "d57409d6fc4a34e5ba66160d51dc85635bb8b261038ae59c49f424e8bd68777b",
+      "byte_identical": true,
+      "size": 8593568,
+      "build_tags": "builtin_all"
+    },
+    {
+      "name": "stunmesh-linux-amd64-ca-v1.15.1",
+      "release_sha256": "c5884bf27756ad906981585e7d92ebd743fcaaa43e407a5d3275d05472c19093",
+      "rebuild_sha256": "c5884bf27756ad906981585e7d92ebd743fcaaa43e407a5d3275d05472c19093",
+      "byte_identical": true,
+      "size": 8749216,
+      "build_tags": "builtin_all,embedca"
+    }
+  ]
+}

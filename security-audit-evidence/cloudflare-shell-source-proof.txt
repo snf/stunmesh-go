@@ -1,0 +1,4 @@
+Fixture: STUNMESH_ACTION=get and STUNMESH_KEY with shell command substitution.
+Execution: isolated bwrap namespace, no host network, Cloudflare URL example.invalid, synthetic token.
+Observation: the optional cloudflare-shell helper evaluated the command substitution while sourcing /dev/stdin and created /work/out/shell-source-marker containing reached before making any Cloudflare request.
+Precondition: this generic helper must receive attacker-controlled shell-protocol assignment text; normal daemon-issued OpenDHT keys are 40 hexadecimal characters.

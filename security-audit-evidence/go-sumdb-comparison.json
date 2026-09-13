@@ -1,0 +1,469 @@
+{
+  "checked": 58,
+  "results": [
+    {
+      "module": "github.com/coreos/go-systemd/v22",
+      "version": "v22.7.0",
+      "url": "https://sum.golang.org/lookup/github.com/coreos/go-systemd/v22@v22.7.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/davecgh/go-spew",
+      "version": "v1.1.1",
+      "url": "https://sum.golang.org/lookup/github.com/davecgh/go-spew@v1.1.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/go-viper/mapstructure/v2",
+      "version": "v2.5.0",
+      "url": "https://sum.golang.org/lookup/github.com/go-viper/mapstructure/v2@v2.5.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/google/btree",
+      "version": "v1.1.2",
+      "url": "https://sum.golang.org/lookup/github.com/google/btree@v1.1.2",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/google/go-cmp",
+      "version": "v0.7.0",
+      "url": "https://sum.golang.org/lookup/github.com/google/go-cmp@v0.7.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/google/subcommands",
+      "version": "v1.2.0",
+      "url": "https://sum.golang.org/lookup/github.com/google/subcommands@v1.2.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/google/wire",
+      "version": "v0.7.0",
+      "url": "https://sum.golang.org/lookup/github.com/google/wire@v0.7.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/gopacket/gopacket",
+      "version": "v1.6.1",
+      "url": "https://sum.golang.org/lookup/github.com/gopacket/gopacket@v1.6.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/inconshreveable/mousetrap",
+      "version": "v1.1.0",
+      "url": "https://sum.golang.org/lookup/github.com/inconshreveable/mousetrap@v1.1.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/josharian/native",
+      "version": "v1.1.0",
+      "url": "https://sum.golang.org/lookup/github.com/josharian/native@v1.1.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mattn/go-colorable",
+      "version": "v0.1.14",
+      "url": "https://sum.golang.org/lookup/github.com/mattn/go-colorable@v0.1.14",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mattn/go-isatty",
+      "version": "v0.0.20",
+      "url": "https://sum.golang.org/lookup/github.com/mattn/go-isatty@v0.0.20",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mdlayher/genetlink",
+      "version": "v1.3.2",
+      "url": "https://sum.golang.org/lookup/github.com/mdlayher/genetlink@v1.3.2",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mdlayher/netlink",
+      "version": "v1.8.0",
+      "url": "https://sum.golang.org/lookup/github.com/mdlayher/netlink@v1.8.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mdlayher/socket",
+      "version": "v0.5.1",
+      "url": "https://sum.golang.org/lookup/github.com/mdlayher/socket@v0.5.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/mikioh/ipaddr",
+      "version": "v0.0.0-20190404000644-d465c8ab6721",
+      "url": "https://sum.golang.org/lookup/github.com/mikioh/ipaddr@v0.0.0-20190404000644-d465c8ab6721",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/packetcap/go-pcap",
+      "version": "v0.0.0-20251215121130-f2cf9f991e7c",
+      "url": "https://sum.golang.org/lookup/github.com/packetcap/go-pcap@v0.0.0-20251215121130-f2cf9f991e7c",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pion/dtls/v3",
+      "version": "v3.1.5",
+      "url": "https://sum.golang.org/lookup/github.com/pion/dtls/v3@v3.1.5",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pion/logging",
+      "version": "v0.2.4",
+      "url": "https://sum.golang.org/lookup/github.com/pion/logging@v0.2.4",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pion/stun/v3",
+      "version": "v3.1.7",
+      "url": "https://sum.golang.org/lookup/github.com/pion/stun/v3@v3.1.7",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pion/transport/v4",
+      "version": "v4.1.0",
+      "url": "https://sum.golang.org/lookup/github.com/pion/transport/v4@v4.1.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "url": "https://sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/pmezard/go-difflib",
+      "version": "v1.0.0",
+      "url": "https://sum.golang.org/lookup/github.com/pmezard/go-difflib@v1.0.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/rs/xid",
+      "version": "v1.6.0",
+      "url": "https://sum.golang.org/lookup/github.com/rs/xid@v1.6.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/rs/zerolog",
+      "version": "v1.35.1",
+      "url": "https://sum.golang.org/lookup/github.com/rs/zerolog@v1.35.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/sirupsen/logrus",
+      "version": "v1.9.3",
+      "url": "https://sum.golang.org/lookup/github.com/sirupsen/logrus@v1.9.3",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/spf13/cobra",
+      "version": "v1.8.0",
+      "url": "https://sum.golang.org/lookup/github.com/spf13/cobra@v1.8.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/spf13/pflag",
+      "version": "v1.0.5",
+      "url": "https://sum.golang.org/lookup/github.com/spf13/pflag@v1.0.5",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/stretchr/objx",
+      "version": "v0.1.0",
+      "url": "https://sum.golang.org/lookup/github.com/stretchr/objx@v0.1.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/stretchr/testify",
+      "version": "v1.12.0",
+      "url": "https://sum.golang.org/lookup/github.com/stretchr/testify@v1.12.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/vishvananda/netlink",
+      "version": "v1.1.0",
+      "url": "https://sum.golang.org/lookup/github.com/vishvananda/netlink@v1.1.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/vishvananda/netns",
+      "version": "v0.0.0-20211101163701-50045581ed74",
+      "url": "https://sum.golang.org/lookup/github.com/vishvananda/netns@v0.0.0-20211101163701-50045581ed74",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/wlynxg/anet",
+      "version": "v0.0.5",
+      "url": "https://sum.golang.org/lookup/github.com/wlynxg/anet@v0.0.5",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "github.com/yuin/goldmark",
+      "version": "v1.4.13",
+      "url": "https://sum.golang.org/lookup/github.com/yuin/goldmark@v1.4.13",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "go.uber.org/mock",
+      "version": "v0.6.0",
+      "url": "https://sum.golang.org/lookup/go.uber.org/mock@v0.6.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "go.yaml.in/yaml/v3",
+      "version": "v3.0.5",
+      "url": "https://sum.golang.org/lookup/go.yaml.in/yaml/v3@v3.0.5",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/crypto",
+      "version": "v0.55.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/crypto@v0.55.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/crypto/x509roots/fallback",
+      "version": "v0.0.0-20260723152544-d701c51f7e4e",
+      "url": "https://sum.golang.org/lookup/golang.org/x/crypto/x509roots/fallback@v0.0.0-20260723152544-d701c51f7e4e",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/exp/shiny",
+      "version": "v0.0.0-20260611194520-c48552f49976",
+      "url": "https://sum.golang.org/lookup/golang.org/x/exp/shiny@v0.0.0-20260611194520-c48552f49976",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/image",
+      "version": "v0.44.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/image@v0.44.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/mobile",
+      "version": "v0.0.0-20260709172247-6129f5bee9d5",
+      "url": "https://sum.golang.org/lookup/golang.org/x/mobile@v0.0.0-20260709172247-6129f5bee9d5",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/mod",
+      "version": "v0.38.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/mod@v0.38.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/net",
+      "version": "v0.58.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/net@v0.58.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/sync",
+      "version": "v0.22.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/sync@v0.22.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/sys",
+      "version": "v0.47.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/sys@v0.47.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/telemetry",
+      "version": "v0.0.0-20260708182218-49f421fb7959",
+      "url": "https://sum.golang.org/lookup/golang.org/x/telemetry@v0.0.0-20260708182218-49f421fb7959",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/term",
+      "version": "v0.45.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/term@v0.45.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/text",
+      "version": "v0.41.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/text@v0.41.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/time",
+      "version": "v0.14.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/time@v0.14.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/tools",
+      "version": "v0.48.0",
+      "url": "https://sum.golang.org/lookup/golang.org/x/tools@v0.48.0",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/tools/go/expect",
+      "version": "v0.1.1-deprecated",
+      "url": "https://sum.golang.org/lookup/golang.org/x/tools/go/expect@v0.1.1-deprecated",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.org/x/tools/go/packages/packagestest",
+      "version": "v0.1.1-deprecated",
+      "url": "https://sum.golang.org/lookup/golang.org/x/tools/go/packages/packagestest@v0.1.1-deprecated",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.zx2c4.com/wintun",
+      "version": "v0.0.0-20230126152724-0fa3db229ce2",
+      "url": "https://sum.golang.org/lookup/golang.zx2c4.com/wintun@v0.0.0-20230126152724-0fa3db229ce2",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.zx2c4.com/wireguard",
+      "version": "v0.0.0-20250521234502-f333402bd9cb",
+      "url": "https://sum.golang.org/lookup/golang.zx2c4.com/wireguard@v0.0.0-20250521234502-f333402bd9cb",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "golang.zx2c4.com/wireguard/wgctrl",
+      "version": "v0.0.0-20241231184526-a9ab2273dd10",
+      "url": "https://sum.golang.org/lookup/golang.zx2c4.com/wireguard/wgctrl@v0.0.0-20241231184526-a9ab2273dd10",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "gopkg.in/check.v1",
+      "version": "v0.0.0-20161208181325-20d25e280405",
+      "url": "https://sum.golang.org/lookup/gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "url": "https://sum.golang.org/lookup/gopkg.in/yaml.v3@v3.0.1",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    },
+    {
+      "module": "gvisor.dev/gvisor",
+      "version": "v0.0.0-20250503011706-39ed1f5ac29c",
+      "url": "https://sum.golang.org/lookup/gvisor.dev/gvisor@v0.0.0-20250503011706-39ed1f5ac29c",
+      "zip_sum_matches": true,
+      "gomod_sum_matches": true,
+      "status": "match"
+    }
+  ]
+}

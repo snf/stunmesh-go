@@ -1,0 +1,8 @@
+{
+  "tool": "govulncheck",
+  "version": "v1.8.0",
+  "database_modified": "2026-09-10T14:48:42Z",
+  "module_findings": [],
+  "affected_package_or_symbol_traces": 0,
+  "note": "Module findings without affected package/symbol traces are not reported reachable call sites."
+}

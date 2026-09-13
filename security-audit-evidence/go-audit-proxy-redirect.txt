@@ -1,0 +1,5 @@
+=== RUN   TestAuditConfiguredProxyCanRedirectIntoLocalNetwork
+    audit_security_test.go:116: DEMONSTRATED: a configured HTTPS DHT proxy redirected the client to an arbitrary local HTTP URL
+--- PASS: TestAuditConfiguredProxyCanRedirectIntoLocalNetwork (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	0.011s

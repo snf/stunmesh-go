@@ -1,0 +1,31 @@
+{
+  "armeabi-v7a": {
+    "elf_upstream_sha256": "8490f10a8180ce9eb11c255331a202d5b3d8a5ce313ff5ebc44673adbb751885",
+    "elf_rebuilt_sha256": "5fb3e97155e9d732301b4fe48fd6bc826eaafa23ba83cd58f9b6cc177ddf4d34",
+    "go_functions_upstream": 7954,
+    "go_functions_rebuilt": 7954,
+    "go_function_name_order_offset_size_identical": true,
+    "go_functions_raw_bytes_identical": 3616,
+    "text_size": 4254236,
+    "text_byte_differences": 33773,
+    "rodata_identical": true,
+    "gopclntab_identical": true,
+    "changed_32bit_word_patterns": {
+      "upper20_identical_low12_changed": 32682,
+      "upper16_identical_low16_changed": 60,
+      "upper8_identical_low24_changed": 4
+    }
+  },
+  "x86": {
+    "elf_upstream_sha256": "9828727a75d893a796858afb953983736850af8c54dcf765290f5725cad2e317",
+    "elf_rebuilt_sha256": "27471d8732bea5d2a778bdd6fbe5ff98937fe039da49184b9823e42ad3b26fed",
+    "go_functions_upstream": 7976,
+    "go_functions_rebuilt": 7976,
+    "go_function_name_order_offset_size_identical": true,
+    "go_functions_raw_bytes_identical": 7976,
+    "text_size": 4173948,
+    "text_byte_differences": 0,
+    "rodata_identical": true,
+    "gopclntab_identical": true
+  }
+}

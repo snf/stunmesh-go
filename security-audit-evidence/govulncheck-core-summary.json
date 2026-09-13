@@ -1,0 +1,42 @@
+{
+  "tool": "govulncheck",
+  "version": "v1.8.0",
+  "database_modified": "2026-09-10T14:48:42Z",
+  "module_findings": [
+    {
+      "id": "GO-2026-5932",
+      "summary": "The golang.org/x/crypto/openpgp package is unmaintained, unsafe by design, and has known security issues",
+      "fixed_version": null,
+      "trace": [
+        {
+          "module": "golang.org/x/crypto",
+          "version": "v0.55.0"
+        }
+      ]
+    },
+    {
+      "id": "GO-2026-6354",
+      "summary": "Prevent DoS on deadlocked undecided channel in golang.org/x/crypto/ssh",
+      "fixed_version": "v0.56.0",
+      "trace": [
+        {
+          "module": "golang.org/x/crypto",
+          "version": "v0.55.0"
+        }
+      ]
+    },
+    {
+      "id": "GO-2026-6355",
+      "summary": "Prevent DoS on deadlocked established channel in golang.org/x/crypto/ssh",
+      "fixed_version": "v0.56.0",
+      "trace": [
+        {
+          "module": "golang.org/x/crypto",
+          "version": "v0.55.0"
+        }
+      ]
+    }
+  ],
+  "affected_package_or_symbol_traces": 0,
+  "note": "Module findings without affected package/symbol traces are not reported reachable call sites."
+}

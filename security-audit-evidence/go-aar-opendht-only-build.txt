@@ -1,0 +1,9 @@
+An initial offline attempt failed because the audit cache lacked mapstructure/v2.
+After filling the isolated module cache, the OpenDHT-only gomobile build succeeded.
+Source tag: stunmesh-go v1.15.1; tags: builtin_opendht,mobile.
+Output AAR SHA-256: 3e0ff8151f0dea3889f65863cf5751fcb055ba7aa4b66a90ce0ba1e0e72b36f2
+The AAR contains libgojni.so for arm64-v8a, armeabi-v7a, x86 and x86_64.
+ARM64 libgojni.so SHA-256: ab1e517352bc5624c1c43b938afa9a4706c0ab42a2487f66f1715968077f2cf2
+The Cloudflare API URL is absent from this ARM64 image, but the shared plugin
+manager still links NewExecPlugin, NewShellPlugin, exec.go and shell.go.
+This is a scratch audit build, not a published/recommended release.

@@ -1,0 +1,8 @@
+=== RUN   TestAuditUnauthenticatedTimestampEclipsesValidRecord
+    audit_security_test.go:33: DEMONSTRATED: a public writer's unauthenticated future timestamp eclipsed a valid discovery record
+--- PASS: TestAuditUnauthenticatedTimestampEclipsesValidRecord (0.00s)
+=== RUN   TestAuditPublicWriterCanReplayOldValidCiphertext
+    audit_security_test.go:86: DEMONSTRATED: public writer rewrapped valid old ciphertext with a future timestamp; Get selected and decrypted the stale endpoint instead of the newer one
+--- PASS: TestAuditPublicWriterCanReplayOldValidCiphertext (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	0.013s

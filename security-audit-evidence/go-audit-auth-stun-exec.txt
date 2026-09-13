@@ -1,0 +1,23 @@
+==88==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==88==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditMobileCoreAcceptsExecutablePlugin
+    audit_security_test.go:77: DEMONSTRATED: mobile JSON accepted an exec plugin and the shared plugin manager executed its command
+--- PASS: TestAuditMobileCoreAcceptsExecutablePlugin (0.01s)
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_false
+    audit_security_test.go:184: wrong discovery signer rejected; no peer configuration change
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_true
+    audit_security_test.go:199: DEMONSTRATED: authenticated discovery record added an unconfigured WireGuard peer and removed the existing peer's PSK
+    audit_security_test.go:200: No WireGuard handshake and no PSK knowledge were needed for this configuration change
+--- PASS: TestAuditDiscoveryRecordCanEnrollPeer (0.05s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_false (0.02s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_true (0.03s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.100s
+==89==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==89==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditUnsolicitedSTUNControlsDiscoveredEndpoint
+    audit_security_test.go:64: DEMONSTRATED: raw STUN reader accepted an unsolicited response from 127.0.0.2 and extracted the attacker-chosen endpoint
+--- PASS: TestAuditUnsolicitedSTUNControlsDiscoveredEndpoint (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	1.036s

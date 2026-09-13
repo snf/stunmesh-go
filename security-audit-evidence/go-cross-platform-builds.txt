@@ -1,0 +1,4 @@
+GOOS=linux
+GOOS=windows
+GOOS=freebsd
+GOOS=darwin

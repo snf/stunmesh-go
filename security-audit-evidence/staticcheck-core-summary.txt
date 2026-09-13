@@ -1,0 +1,5 @@
+Staticcheck 2026.2rc1 (0.8.0-rc.1)
+Command: staticcheck -tags builtin_all,mobile,security_audit ./...
+Exit: 0
+Diagnostics: none
+Run in the isolated audit workspace with source read-only and no network.

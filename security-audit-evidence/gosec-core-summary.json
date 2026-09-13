@@ -1,0 +1,167 @@
+{
+  "tool": "gosec v2.29.0",
+  "stats": {
+    "files": 96,
+    "lines": 9668,
+    "nosec": 0,
+    "found": 21
+  },
+  "rule_counts": {
+    "G115": 13,
+    "G404": 1,
+    "G401": 2,
+    "G114": 1,
+    "G204": 2,
+    "G304": 1,
+    "G505": 1
+  },
+  "issues": [
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/mobilebind/bind.go",
+      "line": "92",
+      "details": "integer overflow conversion uintptr -> int32"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/wgproxy/proxy.go",
+      "line": "173",
+      "details": "integer overflow conversion uint32 -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/plugin/dialer/dialer.go",
+      "line": "214",
+      "details": "integer overflow conversion int -> uint32"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/wgproxy/proxy.go",
+      "line": "152",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/wg/proxy_client.go",
+      "line": "101",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/wg/proxy_client.go",
+      "line": "72",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/stun/helper_socket.go",
+      "line": "77",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/mobilebind/bind.go",
+      "line": "65",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/ctrl/publish.go",
+      "line": "73",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/ctrl/ping_monitor.go",
+      "line": "459",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/ctrl/ping_monitor.go",
+      "line": "231",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "internal/config/device.go",
+      "line": "141",
+      "details": "integer overflow conversion int -> uint16"
+    },
+    {
+      "rule": "G115",
+      "severity": "HIGH",
+      "path": "mobile/node.go",
+      "line": "76",
+      "details": "integer overflow conversion int -> int32"
+    },
+    {
+      "rule": "G404",
+      "severity": "HIGH",
+      "path": "internal/ctrl/ping_monitor.go",
+      "line": "231",
+      "details": "Use of weak random number generator (math/rand or math/rand/v2 instead of crypto/rand)"
+    },
+    {
+      "rule": "G401",
+      "severity": "MEDIUM",
+      "path": "internal/entity/peer_id.go",
+      "line": "43",
+      "details": "Use of weak cryptographic primitive"
+    },
+    {
+      "rule": "G401",
+      "severity": "MEDIUM",
+      "path": "internal/entity/peer_id.go",
+      "line": "34",
+      "details": "Use of weak cryptographic primitive"
+    },
+    {
+      "rule": "G114",
+      "severity": "MEDIUM",
+      "path": "test/e2e/realnet/canary/main.go",
+      "line": "46-48",
+      "details": "Use of net/http serve function that has no support for setting timeouts"
+    },
+    {
+      "rule": "G204",
+      "severity": "MEDIUM",
+      "path": "internal/plugin/shell.go",
+      "line": "82",
+      "details": "Subprocess launched with a potential tainted input or cmd arguments"
+    },
+    {
+      "rule": "G204",
+      "severity": "MEDIUM",
+      "path": "internal/plugin/exec.go",
+      "line": "84",
+      "details": "Subprocess launched with a potential tainted input or cmd arguments"
+    },
+    {
+      "rule": "G304",
+      "severity": "MEDIUM",
+      "path": "internal/config/config.go",
+      "line": "195",
+      "details": "Potential file inclusion via variable"
+    },
+    {
+      "rule": "G505",
+      "severity": "MEDIUM",
+      "path": "internal/entity/peer_id.go",
+      "line": "4",
+      "details": "Blocklisted import crypto/sha1: weak cryptographic primitive"
+    }
+  ]
+}

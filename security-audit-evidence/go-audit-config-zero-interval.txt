@@ -1,0 +1,7 @@
+==65==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==65==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditZeroRefreshIntervalPanicsAfterConfigAcceptance
+    audit_security_test.go:41: DEMONSTRATED: zero refresh_interval passes config.Load, then aborts Daemon.Run at NewTicker
+--- PASS: TestAuditZeroRefreshIntervalPanicsAfterConfigAcceptance (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/daemon	1.047s

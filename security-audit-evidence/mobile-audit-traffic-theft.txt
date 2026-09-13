@@ -1,0 +1,14 @@
+==235==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==235==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_false
+    audit_security_test.go:211: wrong discovery signer rejected; no peer configuration change
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_true
+    audit_security_test.go:248: DEMONSTRATED: authenticated discovery record added an unconfigured WireGuard peer, reassigned the configured route to it, and removed the existing peer's PSK
+    audit_security_test.go:249: DEMONSTRATED: an end-to-end synthetic WireGuard handshake delivered the captured route's plaintext packet to the rogue peer
+    audit_security_test.go:250: No WireGuard handshake and no PSK knowledge were needed for the configuration change
+--- PASS: TestAuditDiscoveryRecordCanEnrollPeer (0.06s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_false (0.02s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/correct_discovery_signer_true (0.04s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.095s

@@ -1,0 +1,29 @@
+?   	github.com/tjjh89017/stunmesh-go	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/app	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/config	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/crypto	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/ctrl	(cached)
+?   	github.com/tjjh89017/stunmesh-go/internal/ctrl/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/daemon	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/entity	(cached)
+?   	github.com/tjjh89017/stunmesh-go/internal/entity/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/logger	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/mobilebind	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/cloudflare	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/dialer	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/registry	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/queue	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/repo	(cached)
+?   	github.com/tjjh89017/stunmesh-go/internal/repo/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/routeprobe	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/wg	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/internal/wgproxy	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.199s
+?   	github.com/tjjh89017/stunmesh-go/pluginapi	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/test/e2e/proxy	(cached)
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/proxy/runner	[no test files]
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/realnet/canary	[no test files]

@@ -1,0 +1,4 @@
+fuzz: elapsed: 1h0m0s, execs: 641779369 (164985/sec)
+fuzz: elapsed: 1h0m0s, execs: 641779369 (0/sec)
+PASS
+coverage: 37.9% of statements

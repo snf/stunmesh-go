@@ -1,0 +1,44 @@
+{
+  "upstream_aar_sha256": "c0de0320a9f13f70f3d0069abccb80035383a1fcb1f591d2362db58b2960e520",
+  "rebuilt_aar_sha256": "429094be6ab70cce2e492d8e85e2de3736cec165259ff8b6374a21ffd4583880",
+  "build_method": "Go 1.27.1, NDK 29.0.14206865, pinned gomobile source; audit-only gomobile patch fixed temporary path to /tmp/gomobile-work-3894889443 recovered from upstream AAR; source, GOPATH and GOROOT bind-mounted at upstream CI paths; no production source change",
+  "arch_64bit": {
+    "arm64-v8a": {
+      "upstream_elf_sha256": "921df30c59f6530f400044a976faa243fbcb8126e6087ed77fa71c1e338a9c7b",
+      "rebuilt_elf_sha256": "c1c56e7abed36a75a0279b5d742684729fdacfcaa99b56b8032c9b410bd9682f",
+      "same_length": true,
+      "elf_length": 8136112,
+      "byte_differences": 78,
+      "sections_with_differences": [
+        {
+          "section": ".note.go.buildid",
+          "bytes_different": 58
+        },
+        {
+          "section": ".note.gnu.build-id",
+          "bytes_different": 20
+        }
+      ],
+      "all_other_sections_identical": true
+    },
+    "x86_64": {
+      "upstream_elf_sha256": "97edd9a4466d1588ccb67813e815d0a5df500442fb91f0b01a2dd6b2e940842c",
+      "rebuilt_elf_sha256": "21f79e720fb9945b584081a0a41508443a2496b4063f76af2e7edde9c7675c8c",
+      "same_length": true,
+      "elf_length": 8886768,
+      "byte_differences": 79,
+      "sections_with_differences": [
+        {
+          "section": ".note.go.buildid",
+          "bytes_different": 59
+        },
+        {
+          "section": ".note.gnu.build-id",
+          "bytes_different": 20
+        }
+      ],
+      "all_other_sections_identical": true
+    }
+  },
+  "limitation": "The AAR archive, classes.jar, 32-bit libraries, and build-id notes are not bit-for-bit reproduced. Exact code/data sections in 64-bit ELF files strongly support source correspondence but do not prove review completeness or upstream account integrity."
+}
