@@ -1,5 +1,6 @@
 Staticcheck 2026.2rc1 (0.8.0-rc.1)
-Command: staticcheck -tags builtin_all,mobile,security_audit ./...
+Command: staticcheck -tags security_audit,builtin_all,mobile ./...
 Exit: 0
 Diagnostics: none
+Final rerun after all audit-only regression and desktop STUN fuzz harness additions.
 Run in the isolated audit workspace with source read-only and no network.
