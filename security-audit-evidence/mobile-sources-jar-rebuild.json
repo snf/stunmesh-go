@@ -1,0 +1,10 @@
+{
+  "source_tag": "v1.15.1",
+  "source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "asset": "stunmesh-android-v1.15.1-sources.jar",
+  "official_sha256": "50e955277c99d7f4bb77ea8d7cf06790b5913b7abd4054b38c7ff0dab426fd2f",
+  "source_build_sha256": "50e955277c99d7f4bb77ea8d7cf06790b5913b7abd4054b38c7ff0dab426fd2f",
+  "byte_identical": true,
+  "size": 9080,
+  "scope": "Generated gomobile Java source JAR only; not the Android AAR or APK"
+}

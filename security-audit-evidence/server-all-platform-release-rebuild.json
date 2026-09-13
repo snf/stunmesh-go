@@ -1,0 +1,187 @@
+{
+  "source_tag": "v1.15.1",
+  "source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "toolchain": "Go 1.27.1",
+  "build": "CGO_ENABLED=0 GOOS/GOARCH[/GOMIPS] go build -trimpath -tags builtin_all[,embedca] -ldflags '-s -w'",
+  "isolation": "sandbox.py bubblewrap, no network/home/SSH/GitHub credentials, release bytes never executed",
+  "count": 16,
+  "identical_count": 16,
+  "assets": [
+    {
+      "asset": "stunmesh-darwin-amd64-v1.15.1",
+      "github_asset_sha256": "c9769d1b8e8814882b021800bdb268a21eb234cf8eba6dd35b41da7ba577e5a7",
+      "source_build_sha256": "c9769d1b8e8814882b021800bdb268a21eb234cf8eba6dd35b41da7ba577e5a7",
+      "published_binary_sha256": "c9769d1b8e8814882b021800bdb268a21eb234cf8eba6dd35b41da7ba577e5a7",
+      "binary_byte_identical": true,
+      "published_binary_size": 8762608,
+      "source_build_size": 8762608,
+      "build_tags": "builtin_all",
+      "build_seconds": 19.82
+    },
+    {
+      "asset": "stunmesh-darwin-arm64-v1.15.1",
+      "github_asset_sha256": "2aaac03f0f1918224a969b00d382dc8f5d04fcdd4e3d2cd534823aabab8ca164",
+      "source_build_sha256": "2aaac03f0f1918224a969b00d382dc8f5d04fcdd4e3d2cd534823aabab8ca164",
+      "published_binary_sha256": "2aaac03f0f1918224a969b00d382dc8f5d04fcdd4e3d2cd534823aabab8ca164",
+      "binary_byte_identical": true,
+      "published_binary_size": 8087522,
+      "source_build_size": 8087522,
+      "build_tags": "builtin_all",
+      "build_seconds": 20.16
+    },
+    {
+      "asset": "stunmesh-freebsd-amd64-v1.15.1",
+      "github_asset_sha256": "9ef163ae92690c233beee3a32ec76e48d8a765e5b6c4d02a197209c634a6bb15",
+      "source_build_sha256": "9ef163ae92690c233beee3a32ec76e48d8a765e5b6c4d02a197209c634a6bb15",
+      "published_binary_sha256": "9ef163ae92690c233beee3a32ec76e48d8a765e5b6c4d02a197209c634a6bb15",
+      "binary_byte_identical": true,
+      "published_binary_size": 8466602,
+      "source_build_size": 8466602,
+      "build_tags": "builtin_all",
+      "build_seconds": 19.64
+    },
+    {
+      "asset": "stunmesh-freebsd-arm64-v1.15.1",
+      "github_asset_sha256": "95dcc5963717cdc7fa6228c331de86ff3b6c00e9b5e9fa931cffbf7500191623",
+      "source_build_sha256": "95dcc5963717cdc7fa6228c331de86ff3b6c00e9b5e9fa931cffbf7500191623",
+      "published_binary_sha256": "95dcc5963717cdc7fa6228c331de86ff3b6c00e9b5e9fa931cffbf7500191623",
+      "binary_byte_identical": true,
+      "published_binary_size": 7733418,
+      "source_build_size": 7733418,
+      "build_tags": "builtin_all",
+      "build_seconds": 19.69
+    },
+    {
+      "asset": "stunmesh-linux-amd64-ca-v1.15.1",
+      "github_asset_sha256": "c5884bf27756ad906981585e7d92ebd743fcaaa43e407a5d3275d05472c19093",
+      "source_build_sha256": "c5884bf27756ad906981585e7d92ebd743fcaaa43e407a5d3275d05472c19093",
+      "published_binary_sha256": "c5884bf27756ad906981585e7d92ebd743fcaaa43e407a5d3275d05472c19093",
+      "binary_byte_identical": true,
+      "published_binary_size": 8749216,
+      "source_build_size": 8749216,
+      "build_tags": "builtin_all,embedca",
+      "build_seconds": 1.19
+    },
+    {
+      "asset": "stunmesh-linux-amd64-v1.15.1",
+      "github_asset_sha256": "d57409d6fc4a34e5ba66160d51dc85635bb8b261038ae59c49f424e8bd68777b",
+      "source_build_sha256": "d57409d6fc4a34e5ba66160d51dc85635bb8b261038ae59c49f424e8bd68777b",
+      "published_binary_sha256": "d57409d6fc4a34e5ba66160d51dc85635bb8b261038ae59c49f424e8bd68777b",
+      "binary_byte_identical": true,
+      "published_binary_size": 8593568,
+      "source_build_size": 8593568,
+      "build_tags": "builtin_all",
+      "build_seconds": 0.73
+    },
+    {
+      "asset": "stunmesh-linux-arm-ca-v1.15.1",
+      "github_asset_sha256": "fd30a028eab74a03562185af8cdd5a0206ac4aedf04370e41caa34f34fdda88a",
+      "source_build_sha256": "fd30a028eab74a03562185af8cdd5a0206ac4aedf04370e41caa34f34fdda88a",
+      "published_binary_sha256": "fd30a028eab74a03562185af8cdd5a0206ac4aedf04370e41caa34f34fdda88a",
+      "binary_byte_identical": true,
+      "published_binary_size": 8585376,
+      "source_build_size": 8585376,
+      "build_tags": "builtin_all,embedca",
+      "build_seconds": 18.97
+    },
+    {
+      "asset": "stunmesh-linux-arm-v1.15.1",
+      "github_asset_sha256": "44058b69bf87a268df593e0a280e5b4cd27ae78c71e82a4db956f4f8a3a56431",
+      "source_build_sha256": "44058b69bf87a268df593e0a280e5b4cd27ae78c71e82a4db956f4f8a3a56431",
+      "published_binary_sha256": "44058b69bf87a268df593e0a280e5b4cd27ae78c71e82a4db956f4f8a3a56431",
+      "binary_byte_identical": true,
+      "published_binary_size": 8388768,
+      "source_build_size": 8388768,
+      "build_tags": "builtin_all",
+      "build_seconds": 0.72
+    },
+    {
+      "asset": "stunmesh-linux-arm64-ca-v1.15.1",
+      "github_asset_sha256": "70218494dd482877a29063e8f46a3c647c5e27c646d7085b877c51483faf660a",
+      "source_build_sha256": "70218494dd482877a29063e8f46a3c647c5e27c646d7085b877c51483faf660a",
+      "published_binary_sha256": "70218494dd482877a29063e8f46a3c647c5e27c646d7085b877c51483faf660a",
+      "binary_byte_identical": true,
+      "published_binary_size": 8061088,
+      "source_build_size": 8061088,
+      "build_tags": "builtin_all,embedca",
+      "build_seconds": 20.02
+    },
+    {
+      "asset": "stunmesh-linux-arm64-v1.15.1",
+      "github_asset_sha256": "cd055561002ae4fa75f4bdc3fd6d13f77a89d0d824d0a01512d954b0e6d977da",
+      "source_build_sha256": "cd055561002ae4fa75f4bdc3fd6d13f77a89d0d824d0a01512d954b0e6d977da",
+      "published_binary_sha256": "cd055561002ae4fa75f4bdc3fd6d13f77a89d0d824d0a01512d954b0e6d977da",
+      "binary_byte_identical": true,
+      "published_binary_size": 7864480,
+      "source_build_size": 7864480,
+      "build_tags": "builtin_all",
+      "build_seconds": 0.73
+    },
+    {
+      "asset": "stunmesh-linux-mips-ca-v1.15.1",
+      "github_asset_sha256": "7ea28f1228cb83da2b9d6c4b4426dfb65588d4ce0202e027764565c01b010d67",
+      "source_build_sha256": "7ea28f1228cb83da2b9d6c4b4426dfb65588d4ce0202e027764565c01b010d67",
+      "published_binary_sha256": "7ea28f1228cb83da2b9d6c4b4426dfb65588d4ce0202e027764565c01b010d67",
+      "binary_byte_identical": true,
+      "published_binary_size": 9633983,
+      "source_build_size": 9633983,
+      "build_tags": "builtin_all,embedca",
+      "build_seconds": 19.3
+    },
+    {
+      "asset": "stunmesh-linux-mips-v1.15.1",
+      "github_asset_sha256": "93aea66adc96f68edb1f1f214113e8ff1b3dea86a77ad68c57ce17660fab7bd4",
+      "source_build_sha256": "93aea66adc96f68edb1f1f214113e8ff1b3dea86a77ad68c57ce17660fab7bd4",
+      "published_binary_sha256": "93aea66adc96f68edb1f1f214113e8ff1b3dea86a77ad68c57ce17660fab7bd4",
+      "binary_byte_identical": true,
+      "published_binary_size": 9437375,
+      "source_build_size": 9437375,
+      "build_tags": "builtin_all",
+      "build_seconds": 0.96
+    },
+    {
+      "asset": "stunmesh-linux-mipsle-ca-v1.15.1",
+      "github_asset_sha256": "f98966fdd57a2c3cb1537811049828d26ffdfe102784e9c8d8cf4381704e78af",
+      "source_build_sha256": "f98966fdd57a2c3cb1537811049828d26ffdfe102784e9c8d8cf4381704e78af",
+      "published_binary_sha256": "f98966fdd57a2c3cb1537811049828d26ffdfe102784e9c8d8cf4381704e78af",
+      "binary_byte_identical": true,
+      "published_binary_size": 9568447,
+      "source_build_size": 9568447,
+      "build_tags": "builtin_all,embedca",
+      "build_seconds": 19.25
+    },
+    {
+      "asset": "stunmesh-linux-mipsle-v1.15.1",
+      "github_asset_sha256": "3ff6bcaa7e761cc959b987e2335b2f38369ed2d06879ed1f3a09bfc16c5679af",
+      "source_build_sha256": "3ff6bcaa7e761cc959b987e2335b2f38369ed2d06879ed1f3a09bfc16c5679af",
+      "published_binary_sha256": "3ff6bcaa7e761cc959b987e2335b2f38369ed2d06879ed1f3a09bfc16c5679af",
+      "binary_byte_identical": true,
+      "published_binary_size": 9437375,
+      "source_build_size": 9437375,
+      "build_tags": "builtin_all",
+      "build_seconds": 1.03
+    },
+    {
+      "asset": "stunmesh-windows-amd64-v1.15.1.zip",
+      "github_asset_sha256": "727c0f712771fbf1f241d62d6067e31e242d5d8fe581b5a509cfcab67e914342",
+      "source_build_sha256": "55f068fe16323c8291112031e75e649629e4d8fd301f0c6a54e901e7bd722fc6",
+      "published_binary_sha256": "55f068fe16323c8291112031e75e649629e4d8fd301f0c6a54e901e7bd722fc6",
+      "binary_byte_identical": true,
+      "published_binary_size": 8660480,
+      "source_build_size": 8660480,
+      "build_tags": "builtin_all",
+      "build_seconds": 20.62
+    },
+    {
+      "asset": "stunmesh-windows-arm64-v1.15.1.zip",
+      "github_asset_sha256": "2a23c0817a4320cde919afae81eb334e24eddcd293f9351a5968491089fa6ac7",
+      "source_build_sha256": "b0dcb46440b7c4885da25caffd72591a757fe75121e7c619219005b3d1639b6a",
+      "published_binary_sha256": "b0dcb46440b7c4885da25caffd72591a757fe75121e7c619219005b3d1639b6a",
+      "binary_byte_identical": true,
+      "published_binary_size": 7813120,
+      "source_build_size": 7813120,
+      "build_tags": "builtin_all",
+      "build_seconds": 20.42
+    }
+  ]
+}
