@@ -1,5 +1,5 @@
 {
-  "checked_utc": "2026-09-13T10:43:25.343969+00:00",
+  "checked_utc": "2026-09-13T10:47:52.171224+00:00",
   "items": [
     {
       "algorithm": "sha256",
@@ -36,6 +36,42 @@
       "publisher_digest": "e025545c62a8e64c7559119566a569fb1dec5f60",
       "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
       "tool": "Android SDK command-line tools"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "android-ndk-r29-linux.zip",
+      "local_digest": "87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b",
+      "match": true,
+      "publisher_digest": "87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b",
+      "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
+      "tool": "Android NDK 29.0.14206865"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "build-tools_r36.1_linux.zip",
+      "local_digest": "936a0d6bd5ae3e2118a7567dddbc95ff67ed46e9",
+      "match": true,
+      "publisher_digest": "936a0d6bd5ae3e2118a7567dddbc95ff67ed46e9",
+      "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
+      "tool": "Android build-tools 36.1.0"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "build-tools_r36_linux.zip",
+      "local_digest": "b0b6376977657e8ad9b969bacf4093601da2c6fb",
+      "match": true,
+      "publisher_digest": "b0b6376977657e8ad9b969bacf4093601da2c6fb",
+      "publisher_metadata": "Google Android SDK repository XML snapshot (downloads/android-repository.xml)",
+      "tool": "Android build-tools 36.0.0"
+    },
+    {
+      "algorithm": "sha1",
+      "file": "platform-36.1_r01.zip",
+      "local_digest": "f87dc23b7ddba6934908da6cfb58fd5b258077ce",
+      "match": true,
+      "publisher_digest": "f87dc23b7ddba6934908da6cfb58fd5b258077ce",
+      "publisher_metadata": "Google Android SDK repository2-4.xml snapshot (downloads/android-repository2-4.xml)",
+      "tool": "Android SDK Platform 36.1"
     }
   ],
   "scope": "Downloaded build-tool archives only; matches publisher-served checksum metadata over HTTPS, not independent code or signing-key audit"
