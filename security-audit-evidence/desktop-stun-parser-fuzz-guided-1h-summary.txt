@@ -1,0 +1,11 @@
+Target: internal/stun/FuzzAuditDesktopBindingResponse in the audited Go tree
+Harness: internal/stun/audit_fuzz_test.go (security_audit build tag)
+Seed inputs: valid Pion Binding Success with XOR-MAPPED-ADDRESS IPv4 and fixed transaction ID; empty packet; 20 zero bytes
+Input cap: 4096 bytes
+Command: go test -tags security_audit,builtin_all,mobile -run '^$' -fuzz=FuzzAuditDesktopBindingResponse -fuzztime=1h -parallel=4 ./internal/stun
+Isolation: bubblewrap namespace without host home, SSH/GitHub credentials or network; Go 1.27.1
+Result: PASS, process exit 0
+Duration reported by Go test: 3600.163s
+Final executions: 147240907
+Final new interesting inputs: 72 (75 total including seeds)
+Scope: exercises STUNMESH's desktop Pion binding-response parser with bounded untrusted bytes. It does not test response-source/transaction policy in the raw Linux socket path, live NAT behavior, or the Android custom parser. A clean fuzz run is not proof of memory safety or absence of semantic attacks.
