@@ -1,0 +1,13 @@
+2026-09-13. Isolated bubblewrap namespace, no external network or production keys.
+
+Target: internal/plugin/builtin/opendht/FuzzAuditOpenDHTConfigConstructor
+Go 1.27.1 coverage-guided fuzzing, -fuzztime=1h, -parallel=4.
+Result: PASS; 78,756,311 executions over 3600.160 seconds; no crash.
+The complete raw Go fuzzer log is retained in the separate local audit
+scratch workspace at evidence/opendht-config-fuzz-guided-1h.txt.
+
+The harness feeds bounded JSON plugin settings into NewOpenDHTPlugin and
+closes instances it constructs. It makes no HTTP requests. It checks for
+panics and resource misuse in construction, not the safety of accepted
+proxy URLs, timeouts, redirects or response bodies. G-05, G-11 and G-17
+remain independently demonstrated/confirmed findings.
