@@ -1,0 +1,6 @@
+==75==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==75==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditEndpointCollisionInvalidatesOtherPeerOnReprogram
+--- PASS: TestAuditEndpointCollisionInvalidatesOtherPeerOnReprogram (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/wgproxy	1.023s
