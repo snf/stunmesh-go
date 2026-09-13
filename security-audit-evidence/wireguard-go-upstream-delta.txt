@@ -1,0 +1,14 @@
+Checked 2026-09-13 against the official https://git.zx2c4.com/wireguard-go repository.
+
+Pinned by root go.mod: f333402bd9cb (module pseudo-version 2025-05-21).
+Official HEAD: ecfc5a8d54462e18e13c72173e2623d16d8e25a0.
+git rev-list --count f333402bd9cb..HEAD: 1.
+Intervening commit: ecfc5a8 (2026-05-20), "tun: clear virtioNetHdr when deleting item from tcpGROTable".
+The commit changes only tun/offload_linux.go and its test.
+
+The audited Android cross-build's `GOOS=android GOARCH=arm64 go list` includes
+offload_linux.go. Its handleGRO path is called by NativeTun.Write only when
+NativeTun.initFromFlags observes IFF_VNET_HDR on the supplied TUN fd.
+This audit had no Android device to establish that flag for VpnService's fd
+or to reproduce the upstream bug. The delta is an update/retest lead, not
+evidence of exploitable behavior in the checked APK.
