@@ -1,6 +1,6 @@
 # STUNMESH Go daemon and mobile-core security audit
 
-**Audit window:** 2026-09-13 01:01:47–11:01:47 UTC (ten hours; investigation ongoing).
+**Audit window:** 2026-09-13 01:01:47–11:01:47 UTC (ten hours; completed).
 
 **Audited tree:** `71a73228cd2bc001cdc5d485a16621a24bfae15a` (tree `638258efce44478f1c05b244d4fb24803ce16bc5`), release `v1.15.1` for the mobile core.
 **Fork:** <https://github.com/snf/stunmesh-go>. The audit branch and this root report are committed locally pending a disclosure decision; the public fork’s `main` remains at the audited upstream commit. This branch adds audit-only tests and this report; production code and NAS/VPS services were not changed.
