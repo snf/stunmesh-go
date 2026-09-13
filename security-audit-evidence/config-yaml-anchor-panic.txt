@@ -1,0 +1,14 @@
+Go 1.27.1 coverage-guided FuzzAuditConfigLoader, isolated writable audit source copy.
+The initial read-only run could not save the failing input; the writable rerun minimized it after 408,335 executions (34.404 seconds).
+
+Minimized fuzz suffix (appended after a synthetic STUN address):
+plugins:
+  store:
+    &000: 0000000
+00000000: 00000000
+
+Observed result: panic: runtime error: invalid memory address or nil pointer dereference.
+Stack boundary: github.com/go-viper/mapstructure/v2@v2.5.0/mapstructure.go:1732 decodeStructFromMap, called by internal/config/config.go:221.
+The YAML library returned no error and decoded plugins.store to map[interface{}]interface{}{nil: 0}; the unexpected nil mapping key reaches mapstructure.MapIndex.
+The original audit checkout reproduces the panic with the audit-tag-only TestAuditYAMLAnchorMappingPanicsDuringConfigLoad.
+This input is a local configuration document; no network request or production file was used.
