@@ -50,29 +50,49 @@
       ],
       "components": {
         "stunmesh-cloudflare": {
+          "gid": 0,
           "image_sha256": "e1b7e8da728cbd9c541b06445e045808f233b9a2dadeac9496d2f32cf38a2389",
           "match": true,
-          "source_rebuild_sha256": "e1b7e8da728cbd9c541b06445e045808f233b9a2dadeac9496d2f32cf38a2389"
+          "mode": "0o755",
+          "size": 12190582,
+          "source_rebuild_sha256": "e1b7e8da728cbd9c541b06445e045808f233b9a2dadeac9496d2f32cf38a2389",
+          "uid": 0
         },
         "stunmesh-cloudflare-shell": {
+          "gid": 0,
           "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
           "match": true,
-          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+          "mode": "0o755",
+          "size": 3866,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "uid": 0
         },
         "stunmesh-go": {
+          "gid": 0,
           "image_sha256": "48546da578e7a8e4f398a281e1d0f14a7a43f63d18086682f64fa9d8c2ec9461",
           "match": true,
-          "source_rebuild_sha256": "48546da578e7a8e4f398a281e1d0f14a7a43f63d18086682f64fa9d8c2ec9461"
+          "mode": "0o755",
+          "size": 8749216,
+          "source_rebuild_sha256": "48546da578e7a8e4f398a281e1d0f14a7a43f63d18086682f64fa9d8c2ec9461",
+          "uid": 0
         },
         "stunmesh-opendht": {
+          "gid": 0,
           "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
           "match": true,
-          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+          "mode": "0o755",
+          "size": 5841,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "uid": 0
         },
         "stunmesh-opendht-shell": {
+          "gid": 0,
           "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
           "match": true,
-          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+          "mode": "0o755",
+          "size": 6896,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "uid": 0
         }
       },
       "config_digest": "sha256:7978c6a99998188f1fe883396a70c059ba8f47ca411d54158c497226ca496041",
@@ -100,29 +120,49 @@
       ],
       "components": {
         "stunmesh-cloudflare": {
+          "gid": 0,
           "image_sha256": "bb0fbe6e43173cb5584d9bad5ce32c9706a30aff1b7e01d7472542f0e10a3e72",
           "match": true,
-          "source_rebuild_sha256": "bb0fbe6e43173cb5584d9bad5ce32c9706a30aff1b7e01d7472542f0e10a3e72"
+          "mode": "0o755",
+          "size": 11865945,
+          "source_rebuild_sha256": "bb0fbe6e43173cb5584d9bad5ce32c9706a30aff1b7e01d7472542f0e10a3e72",
+          "uid": 0
         },
         "stunmesh-cloudflare-shell": {
+          "gid": 0,
           "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
           "match": true,
-          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+          "mode": "0o755",
+          "size": 3866,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "uid": 0
         },
         "stunmesh-go": {
+          "gid": 0,
           "image_sha256": "9fb2fb1d9f86f44155f7b8f4417263dd9aa15c4c112e5ed0196cea868beb462e",
           "match": true,
-          "source_rebuild_sha256": "9fb2fb1d9f86f44155f7b8f4417263dd9aa15c4c112e5ed0196cea868beb462e"
+          "mode": "0o755",
+          "size": 8585376,
+          "source_rebuild_sha256": "9fb2fb1d9f86f44155f7b8f4417263dd9aa15c4c112e5ed0196cea868beb462e",
+          "uid": 0
         },
         "stunmesh-opendht": {
+          "gid": 0,
           "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
           "match": true,
-          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+          "mode": "0o755",
+          "size": 5841,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "uid": 0
         },
         "stunmesh-opendht-shell": {
+          "gid": 0,
           "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
           "match": true,
-          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+          "mode": "0o755",
+          "size": 6896,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "uid": 0
         }
       },
       "config_digest": "sha256:2a82a4f7082b2e8f8628c4ce2fd798b2e3f987fa6a60843d9a67b52c9be18750",
@@ -150,29 +190,49 @@
       ],
       "components": {
         "stunmesh-cloudflare": {
+          "gid": 0,
           "image_sha256": "6643efaee67a3edd945f734bb36b7ca21a71fb496185010c6c31818f17a32b06",
           "match": true,
-          "source_rebuild_sha256": "6643efaee67a3edd945f734bb36b7ca21a71fb496185010c6c31818f17a32b06"
+          "mode": "0o755",
+          "size": 11337440,
+          "source_rebuild_sha256": "6643efaee67a3edd945f734bb36b7ca21a71fb496185010c6c31818f17a32b06",
+          "uid": 0
         },
         "stunmesh-cloudflare-shell": {
+          "gid": 0,
           "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
           "match": true,
-          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+          "mode": "0o755",
+          "size": 3866,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "uid": 0
         },
         "stunmesh-go": {
+          "gid": 0,
           "image_sha256": "d17bdad529b3aabc1b09bb00962db23ba6b0f6049ee84125c541914175ed4fac",
           "match": true,
-          "source_rebuild_sha256": "d17bdad529b3aabc1b09bb00962db23ba6b0f6049ee84125c541914175ed4fac"
+          "mode": "0o755",
+          "size": 8061088,
+          "source_rebuild_sha256": "d17bdad529b3aabc1b09bb00962db23ba6b0f6049ee84125c541914175ed4fac",
+          "uid": 0
         },
         "stunmesh-opendht": {
+          "gid": 0,
           "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
           "match": true,
-          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+          "mode": "0o755",
+          "size": 5841,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "uid": 0
         },
         "stunmesh-opendht-shell": {
+          "gid": 0,
           "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
           "match": true,
-          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+          "mode": "0o755",
+          "size": 6896,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "uid": 0
         }
       },
       "config_digest": "sha256:c648d4bc00798deb5d42c170408b13a7692e2b0021a987d78b8373aa417db6fa",

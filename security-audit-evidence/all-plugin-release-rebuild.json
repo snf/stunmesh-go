@@ -1,0 +1,129 @@
+{
+  "archive_count": 18,
+  "archive_digests": {
+    "stunmesh-plugins-darwin-amd64-v1.15.1.tar.gz": "sha256:775c24bb74b11aec63ddae9961ed9b9dab60b70e73808697c993c4303821c4ea",
+    "stunmesh-plugins-darwin-amd64-v1.15.1.zip": "sha256:ca194511ccf5f2daa820509866498bc025397ce2629a3dac7d5df37c676ad06a",
+    "stunmesh-plugins-darwin-arm64-v1.15.1.tar.gz": "sha256:34cb94db76bb6c62ce1c7d2afcf25cf26a838f92fe40ac47ec599d77d6d46fd1",
+    "stunmesh-plugins-darwin-arm64-v1.15.1.zip": "sha256:0b1099420a922678c6dbb8242dbc59d76b7cf526d391e8834828fd01ab31d7af",
+    "stunmesh-plugins-freebsd-amd64-v1.15.1.tar.gz": "sha256:4c59a80ccba19d0726895bc36360a4bdebc2c28889a86827743b7454a0b6d4f7",
+    "stunmesh-plugins-freebsd-amd64-v1.15.1.zip": "sha256:db898365c862d9c3dbcc1da2e91b7564a766375d1f347bfa9fe55b2a81b9e0d1",
+    "stunmesh-plugins-freebsd-arm64-v1.15.1.tar.gz": "sha256:191139c2381218387892e3650749ad303918d60cad0e5ecdd687ec6e93e864e5",
+    "stunmesh-plugins-freebsd-arm64-v1.15.1.zip": "sha256:c36c77d5438cd9451d313bf32239f798311a6789495720939a3f837826852d65",
+    "stunmesh-plugins-linux-amd64-v1.15.1.tar.gz": "sha256:3da364f99f814839df30441e4df87eea3546cd7e018b239da7101146aa9bf278",
+    "stunmesh-plugins-linux-amd64-v1.15.1.zip": "sha256:94fe9b9ee94141f64f36cef14d9223249ee640af06328e737ce6fc84414dea09",
+    "stunmesh-plugins-linux-arm-v1.15.1.tar.gz": "sha256:6f7a87eaad141ac2cc47ef9b9787103a5d860131813185179cff37cade3bb1e0",
+    "stunmesh-plugins-linux-arm-v1.15.1.zip": "sha256:8d59ea68aaf356603de64d6e176aeb69dd86a98208206dfae2609f51a87ecc80",
+    "stunmesh-plugins-linux-arm64-v1.15.1.tar.gz": "sha256:367ccfaaf9e26e5f00c42c5a29259eec3a42abf502c35fd6ce98718e0701fef6",
+    "stunmesh-plugins-linux-arm64-v1.15.1.zip": "sha256:337ddcc0168c8b00b005d4dd347457965de1e5b44967f3a62455a63c90e87442",
+    "stunmesh-plugins-linux-mips-v1.15.1.tar.gz": "sha256:de1aaacb0bdb7be3773abfded54fe88f83638cacd812edc0723b07025456ecaa",
+    "stunmesh-plugins-linux-mips-v1.15.1.zip": "sha256:1fa02544a241cda7ef603abdc8b404fcc976dd5066f381b36fd8126b9d499a40",
+    "stunmesh-plugins-linux-mipsle-v1.15.1.tar.gz": "sha256:148e39f39d709c125afc5bea1d6cca23b1e843536161300a4435f2d2de2af63a",
+    "stunmesh-plugins-linux-mipsle-v1.15.1.zip": "sha256:246a4fc7df46fc72aac11d54c2c0fc86b3f38523f8e4fce81543646e064584cc"
+  },
+  "archive_member_paths_safe": true,
+  "helper_rebuilds": {
+    "darwin-amd64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=darwin",
+        "GOARCH=amd64"
+      ],
+      "match": true,
+      "release_payload_sha256": "d67e2b26d8a34e1daa9395f940431d93660df0fdc44293b37550ac744d148e06",
+      "source_rebuild_sha256": "d67e2b26d8a34e1daa9395f940431d93660df0fdc44293b37550ac744d148e06"
+    },
+    "darwin-arm64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=darwin",
+        "GOARCH=arm64"
+      ],
+      "match": true,
+      "release_payload_sha256": "f4a1909256bfc9082cc4a43edf77ca7aed961f09127d422bcce648746e984e63",
+      "source_rebuild_sha256": "f4a1909256bfc9082cc4a43edf77ca7aed961f09127d422bcce648746e984e63"
+    },
+    "freebsd-amd64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=freebsd",
+        "GOARCH=amd64"
+      ],
+      "match": true,
+      "release_payload_sha256": "3fb86a4a4e77b072e61ddf17f7b0ac59aa49f3b97eb76365b4700bacf673afd1",
+      "source_rebuild_sha256": "3fb86a4a4e77b072e61ddf17f7b0ac59aa49f3b97eb76365b4700bacf673afd1"
+    },
+    "freebsd-arm64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=freebsd",
+        "GOARCH=arm64"
+      ],
+      "match": true,
+      "release_payload_sha256": "88739f8b56e9dc8b34db3964b2c0ca94b87a79914f7db7a6813e980b2b9689a7",
+      "source_rebuild_sha256": "88739f8b56e9dc8b34db3964b2c0ca94b87a79914f7db7a6813e980b2b9689a7"
+    },
+    "linux-amd64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=linux",
+        "GOARCH=amd64"
+      ],
+      "match": true,
+      "release_payload_sha256": "f3f45526be6431ba6f1416aec100362e5b6ee3625a407c0f46434cbc7ed2586d",
+      "source_rebuild_sha256": "f3f45526be6431ba6f1416aec100362e5b6ee3625a407c0f46434cbc7ed2586d"
+    },
+    "linux-arm": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=linux",
+        "GOARCH=arm",
+        "GOARM=7"
+      ],
+      "match": true,
+      "release_payload_sha256": "77ab0f4b009cea48b8ced7523d5d57c26f1494f63090e582464a0b361c16cbbe",
+      "source_rebuild_sha256": "77ab0f4b009cea48b8ced7523d5d57c26f1494f63090e582464a0b361c16cbbe"
+    },
+    "linux-arm64": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=linux",
+        "GOARCH=arm64"
+      ],
+      "match": true,
+      "release_payload_sha256": "939a98a0cb187b37625965d9abd3df1d2e7dffb47ec982fa144dbd1933cd21c0",
+      "source_rebuild_sha256": "939a98a0cb187b37625965d9abd3df1d2e7dffb47ec982fa144dbd1933cd21c0"
+    },
+    "linux-mips": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=linux",
+        "GOARCH=mips",
+        "GOMIPS=softfloat"
+      ],
+      "match": true,
+      "release_payload_sha256": "3e74fe8aa8b00841cfb7742bdc60d96fa75a28cf482c76dad1922252f911e75f",
+      "source_rebuild_sha256": "3e74fe8aa8b00841cfb7742bdc60d96fa75a28cf482c76dad1922252f911e75f"
+    },
+    "linux-mipsle": {
+      "build_env": [
+        "CGO_ENABLED=0",
+        "GOOS=linux",
+        "GOARCH=mipsle",
+        "GOMIPS=softfloat"
+      ],
+      "match": true,
+      "release_payload_sha256": "a031a40d0c2f3e63895ba652e856a85d08f58915732cb7b441e742fdd4fba661",
+      "source_rebuild_sha256": "a031a40d0c2f3e63895ba652e856a85d08f58915732cb7b441e742fdd4fba661"
+    }
+  },
+  "limits": [
+    "Archive containers themselves were not rebuilt byte-for-byte.",
+    "Matching the release helper to source does not prove its behavior safe or authenticate GitHub first publication."
+  ],
+  "method": "All archive SHA-256 values matched GitHub release metadata. Each tar.gz and ZIP contained only the four expected regular files; corresponding tar/ZIP payload hashes matched, and the three scripts matched tagged source. Helper rebuilt under GitHub runner source/tool/module paths with Go 1.27.1 and CGO_ENABLED=0.",
+  "release": "v1.15.1",
+  "scripts_match_tag": true,
+  "source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "tar_zip_payloads_match": true,
+  "target_count": 9
+}
