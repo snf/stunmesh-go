@@ -1,0 +1,60 @@
+{
+  "affected_linked_modules": [],
+  "graph": "v1.15.1 tagged contrib/cloudflare/go.mod",
+  "hits": [
+    {
+      "ids": [
+        "GO-2026-5932",
+        "GO-2026-6354",
+        "GO-2026-6355"
+      ],
+      "module": "golang.org/x/crypto",
+      "version": "v0.55.0"
+    },
+    {
+      "ids": [
+        "GO-2026-6179",
+        "GO-2026-6180"
+      ],
+      "module": "golang.org/x/mod",
+      "version": "v0.38.0"
+    }
+  ],
+  "limits": "Go build info lists dependencies, not a line-by-line reachability proof; the OSV query is an advisory snapshot.",
+  "linked_modules_amd64": [
+    {
+      "module": "github.com/cloudflare/cloudflare-go",
+      "version": "v0.117.0"
+    },
+    {
+      "module": "github.com/goccy/go-json",
+      "version": "v0.10.5"
+    },
+    {
+      "module": "github.com/google/go-querystring",
+      "version": "v1.1.0"
+    },
+    {
+      "module": "github.com/tjjh89017/stunmesh-go",
+      "version": "v1.14.0"
+    },
+    {
+      "module": "golang.org/x/crypto/x509roots/fallback",
+      "version": "v0.0.0-20260723152544-d701c51f7e4e"
+    },
+    {
+      "module": "golang.org/x/net",
+      "version": "v0.58.0"
+    },
+    {
+      "module": "golang.org/x/text",
+      "version": "v0.41.0"
+    },
+    {
+      "module": "golang.org/x/time",
+      "version": "v0.14.0"
+    }
+  ],
+  "module_count": 53,
+  "source": "OSV querybatch, 2026-09-13; graph presence does not imply linked reachability"
+}

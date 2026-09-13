@@ -1,0 +1,171 @@
+{
+  "artifact": "ghcr.io/tjjh89017/stunmesh:v1.15.1",
+  "attestations": [
+    {
+      "builder": "https://github.com/tjjh89017/stunmesh-go/actions/runs/34094948500/attempts/1",
+      "declared_base_image_digest": "512690a5660563b57d37ecc31129e7f136e831db2aed24a1dbeb8ad7380dc0fa",
+      "declared_source": "https://github.com/tjjh89017/stunmesh-go.git#bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+      "manifest_digest": "sha256:bd5061b2ca1a20fa4db2e699eb23fec36646f273a50538163fa7b7cf5aa6e604",
+      "predicate_type": "https://slsa.dev/provenance/v1",
+      "signature_verified": false,
+      "subject_digest": "sha256:c3c80d62f825e15166ae5d772ce3440cea0b7f9147651bc42492bf8b140fe5c3"
+    },
+    {
+      "builder": "https://github.com/tjjh89017/stunmesh-go/actions/runs/34094948500/attempts/1",
+      "declared_base_image_digest": "512690a5660563b57d37ecc31129e7f136e831db2aed24a1dbeb8ad7380dc0fa",
+      "declared_source": "https://github.com/tjjh89017/stunmesh-go.git#bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+      "manifest_digest": "sha256:88c977fb28e71b2f1ee93d0e337b0cd506b7f18a055244813c66122750538097",
+      "predicate_type": "https://slsa.dev/provenance/v1",
+      "signature_verified": false,
+      "subject_digest": "sha256:24a97abeb16e0ca41d1d2001544226cc80cd1917a0d53cbbf93d959d9bd37ab6"
+    },
+    {
+      "builder": "https://github.com/tjjh89017/stunmesh-go/actions/runs/34094948500/attempts/1",
+      "declared_base_image_digest": "512690a5660563b57d37ecc31129e7f136e831db2aed24a1dbeb8ad7380dc0fa",
+      "declared_source": "https://github.com/tjjh89017/stunmesh-go.git#bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+      "manifest_digest": "sha256:2e9e4ecea54515145991662174c2d516754f1dcf7a3c3b1851bf139af8f64de2",
+      "predicate_type": "https://slsa.dev/provenance/v1",
+      "signature_verified": false,
+      "subject_digest": "sha256:1a67cb5934ce6b00079b361d7c46f8a58e3bebe49b400e1cc140a8c2fe8d4a97"
+    }
+  ],
+  "audited_tag_source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "index_digest": "sha256:8a55333067bdc40f932d212d5247231023119642fbda3368d969fc5d3e057364",
+  "limitations": [
+    "A matched payload shows consistency with the audited source and build inputs, not source safety or publisher identity.",
+    "The OCI layer streams themselves were not rebuilt byte-for-byte; registry digests establish integrity relative to GHCR.",
+    "The in-index provenance statements were not independently signature-verified and can be publisher-controlled."
+  ],
+  "method": [
+    "Anonymous registry token; SHA-256 verified OCI index, child manifests, configs, layers and attestation JSON relative to registry descriptors.",
+    "Read tar members without executing or extracting archive paths; exactly five regular files and three app directory entries per platform.",
+    "Rebuilt the daemon with Go 1.27.1, CGO_ENABLED=0, builtin_all+embedca and -trimpath from a git-archive of v1.15.1 without .git.",
+    "Rebuilt the nested Cloudflare helper with its tagged go.mod and Go 1.27.1 under the Dockerfile /work, /go and /usr/local/go paths.",
+    "Compared all three shell scripts to the exact tagged source bytes."
+  ],
+  "platforms": {
+    "amd64": {
+      "cmd": [
+        "/app/stunmesh-go"
+      ],
+      "components": {
+        "stunmesh-cloudflare": {
+          "image_sha256": "e1b7e8da728cbd9c541b06445e045808f233b9a2dadeac9496d2f32cf38a2389",
+          "match": true,
+          "source_rebuild_sha256": "e1b7e8da728cbd9c541b06445e045808f233b9a2dadeac9496d2f32cf38a2389"
+        },
+        "stunmesh-cloudflare-shell": {
+          "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "match": true,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+        },
+        "stunmesh-go": {
+          "image_sha256": "48546da578e7a8e4f398a281e1d0f14a7a43f63d18086682f64fa9d8c2ec9461",
+          "match": true,
+          "source_rebuild_sha256": "48546da578e7a8e4f398a281e1d0f14a7a43f63d18086682f64fa9d8c2ec9461"
+        },
+        "stunmesh-opendht": {
+          "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "match": true,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+        },
+        "stunmesh-opendht-shell": {
+          "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "match": true,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+        }
+      },
+      "config_digest": "sha256:7978c6a99998188f1fe883396a70c059ba8f47ca411d54158c497226ca496041",
+      "config_user": null,
+      "layer_digests": [
+        "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
+        "sha256:6a74796f5d1df8ee652c8ce6c765e992c405765a0b1c47ff0081819e566e766f",
+        "sha256:8fd7dc7aef6d153690e661debcf7c5d2b8b2fabe3acaae465111ef862edf13e8"
+      ],
+      "manifest_digest": "sha256:c3c80d62f825e15166ae5d772ce3440cea0b7f9147651bc42492bf8b140fe5c3",
+      "regular_files": 5
+    },
+    "arm-v7": {
+      "cmd": [
+        "/app/stunmesh-go"
+      ],
+      "components": {
+        "stunmesh-cloudflare": {
+          "image_sha256": "bb0fbe6e43173cb5584d9bad5ce32c9706a30aff1b7e01d7472542f0e10a3e72",
+          "match": true,
+          "source_rebuild_sha256": "bb0fbe6e43173cb5584d9bad5ce32c9706a30aff1b7e01d7472542f0e10a3e72"
+        },
+        "stunmesh-cloudflare-shell": {
+          "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "match": true,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+        },
+        "stunmesh-go": {
+          "image_sha256": "9fb2fb1d9f86f44155f7b8f4417263dd9aa15c4c112e5ed0196cea868beb462e",
+          "match": true,
+          "source_rebuild_sha256": "9fb2fb1d9f86f44155f7b8f4417263dd9aa15c4c112e5ed0196cea868beb462e"
+        },
+        "stunmesh-opendht": {
+          "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "match": true,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+        },
+        "stunmesh-opendht-shell": {
+          "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "match": true,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+        }
+      },
+      "config_digest": "sha256:2a82a4f7082b2e8f8628c4ce2fd798b2e3f987fa6a60843d9a67b52c9be18750",
+      "config_user": null,
+      "layer_digests": [
+        "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
+        "sha256:f0d6a02dc8c45d00b7ec8012ce2058daf4d9372fa99332abe6a8e70984f14484",
+        "sha256:e7ed828c0eface41cb1d7ed9149550a8cc48aac4d5709ed8c579a49fb77997b1"
+      ],
+      "manifest_digest": "sha256:1a67cb5934ce6b00079b361d7c46f8a58e3bebe49b400e1cc140a8c2fe8d4a97",
+      "regular_files": 5
+    },
+    "arm64": {
+      "cmd": [
+        "/app/stunmesh-go"
+      ],
+      "components": {
+        "stunmesh-cloudflare": {
+          "image_sha256": "6643efaee67a3edd945f734bb36b7ca21a71fb496185010c6c31818f17a32b06",
+          "match": true,
+          "source_rebuild_sha256": "6643efaee67a3edd945f734bb36b7ca21a71fb496185010c6c31818f17a32b06"
+        },
+        "stunmesh-cloudflare-shell": {
+          "image_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9",
+          "match": true,
+          "tagged_source_sha256": "ac780df35853b184811260d55b7e4e9a36d97ad3b4bcb67dc95567e24d87b2b9"
+        },
+        "stunmesh-go": {
+          "image_sha256": "d17bdad529b3aabc1b09bb00962db23ba6b0f6049ee84125c541914175ed4fac",
+          "match": true,
+          "source_rebuild_sha256": "d17bdad529b3aabc1b09bb00962db23ba6b0f6049ee84125c541914175ed4fac"
+        },
+        "stunmesh-opendht": {
+          "image_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191",
+          "match": true,
+          "tagged_source_sha256": "c71badb2639e11de20cdaa7726cafedb65be85cd4bfd286c5b99ba2e5c329191"
+        },
+        "stunmesh-opendht-shell": {
+          "image_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74",
+          "match": true,
+          "tagged_source_sha256": "01d8e4c59487f97c6fc884c53b9f8da9c40bcbde0484ee6345d6d42b38db9e74"
+        }
+      },
+      "config_digest": "sha256:c648d4bc00798deb5d42c170408b13a7692e2b0021a987d78b8373aa417db6fa",
+      "config_user": null,
+      "layer_digests": [
+        "sha256:88b463dd234973d32a419ba104c9ae95d4fef3d9a7ecce788a93f330e0624bf1",
+        "sha256:cddaec6f56e3e767c049042b1e800cb2aa6cf9774130361b4123bc023a7d7a95",
+        "sha256:831f03eb78c5d6959af4592f22f825f01a92d239853f819758782bab2e399ddd"
+      ],
+      "manifest_digest": "sha256:24a97abeb16e0ca41d1d2001544226cc80cd1917a0d53cbbf93d959d9bd37ab6",
+      "regular_files": 5
+    }
+  }
+}
