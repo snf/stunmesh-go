@@ -1,0 +1,7 @@
+==62==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==62==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditImportedEndpointTransfersValidRouteToHiddenPeer
+    audit_security_test.go:281: DEMONSTRATED: an imported endpoint newline transfers a valid app route to an unlisted peer without its configured PSK
+--- PASS: TestAuditImportedEndpointTransfersValidRouteToHiddenPeer (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.032s

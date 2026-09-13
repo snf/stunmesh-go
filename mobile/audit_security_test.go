@@ -228,6 +228,59 @@ func TestAuditImportedAllowedIPAddsHiddenPeer(t *testing.T) {
 	t.Log("DEMONSTRATED: one imported JSON peer with a newline in allowed_ips installs a second hidden WireGuard peer")
 }
 
+// The imported endpoint field is never passed through Android Builder's CIDR
+// parser. It can change the current UAPI peer while the separate allowed_ips
+// stays valid, so Android still captures the route into its TUN.
+func TestAuditImportedEndpointTransfersValidRouteToHiddenPeer(t *testing.T) {
+	local, legitimate, rogue, psk := auditKey(t), auditKey(t), auditKey(t), auditKey(t)
+	legitimatePub, roguePub := legitimate.PublicKey(), rogue.PublicKey()
+	cfg := &tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{
+			PublicKey: legitimatePub.String(), PresharedKey: psk.String(),
+			Endpoint:   "127.0.0.1:9\npublic_key=" + auditHex(roguePub),
+			AllowedIPs: []string{"10.89.0.2/32"},
+		}},
+	}
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := parseConfig(string(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Peers) != 1 || parsed.Peers[0].AllowedIPs[0] != "10.89.0.2/32" {
+		t.Fatal("fixture should have one listed peer and one valid app route")
+	}
+	uapi, err := buildUAPI(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	if err := dev.IpcSet(uapi); err != nil {
+		t.Fatalf("wireguard-go rejected injected initial endpoint: %v", err)
+	}
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+auditHex(roguePub)) {
+		t.Fatalf("hidden peer was not installed: %q", got)
+	}
+	rogueBlock := strings.SplitN(strings.SplitN(got, "public_key="+auditHex(roguePub)+"\n", 2)[1], "\npublic_key=", 2)[0]
+	legitimateBlock := strings.SplitN(strings.SplitN(got, "public_key="+auditHex(legitimatePub)+"\n", 2)[1], "\npublic_key=", 2)[0]
+	if !strings.Contains("\n"+rogueBlock+"\n", "\nallowed_ip=10.89.0.2/32\n") ||
+		strings.Contains("\n"+legitimateBlock+"\n", "\nallowed_ip=10.89.0.2/32\n") {
+		t.Fatalf("valid route did not transfer to hidden peer: %q", got)
+	}
+	if !strings.Contains(legitimateBlock, "preshared_key="+auditHex(psk)) || strings.Contains(rogueBlock, "preshared_key="+auditHex(psk)) {
+		t.Fatalf("PSK status was not as expected: %q", got)
+	}
+	t.Log("DEMONSTRATED: an imported endpoint newline transfers a valid app route to an unlisted peer without its configured PSK")
+}
+
 // A wrong signer normally fails discovery authentication. With a configured
 // low-order peer key, anyone who knows the local public key can instead make
 // a valid NaCl record for that peer and feed the UAPI injection path, without
