@@ -1,0 +1,7 @@
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditImportedAllowedIPAddsHiddenPeer
+    audit_security_test.go:228: DEMONSTRATED: one imported JSON peer with a newline in allowed_ips installs a second hidden WireGuard peer
+--- PASS: TestAuditImportedAllowedIPAddsHiddenPeer (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.030s

@@ -183,6 +183,51 @@ func TestAuditRejectedEndpointUAPIStillChangesPeerSet(t *testing.T) {
 	t.Log("DEMONSTRATED: a rejected endpoint UAPI update still leaves its earlier injected peer and route installed")
 }
 
+// Imported profile fields take a second path to UAPI before discovery runs.
+// A newline hidden in allowed_ips can add a peer even if the dynamic endpoint
+// update is fixed; the app's displayed peer list still contains only one.
+func TestAuditImportedAllowedIPAddsHiddenPeer(t *testing.T) {
+	local, legitimate, rogue := auditKey(t), auditKey(t), auditKey(t)
+	roguePub := rogue.PublicKey()
+	cfg := &tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{
+			PublicKey: legitimate.PublicKey().String(),
+			AllowedIPs: []string{
+				"10.89.0.2/32\npublic_key=" + auditHex(roguePub) + "\nallowed_ip=10.89.0.3/32",
+			},
+		}},
+	}
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := parseConfig(string(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Peers) != 1 {
+		t.Fatal("fixture should show exactly one configured peer")
+	}
+	uapi, err := buildUAPI(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	if err := dev.IpcSet(uapi); err != nil {
+		t.Fatalf("wireguard-go rejected injected initial config: %v", err)
+	}
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+auditHex(roguePub)) || !strings.Contains(got, "allowed_ip=10.89.0.3/32") {
+		t.Fatalf("hidden peer was not installed: %q", got)
+	}
+	t.Log("DEMONSTRATED: one imported JSON peer with a newline in allowed_ips installs a second hidden WireGuard peer")
+}
+
 // A wrong signer normally fails discovery authentication. With a configured
 // low-order peer key, anyone who knows the local public key can instead make
 // a valid NaCl record for that peer and feed the UAPI injection path, without
