@@ -124,6 +124,8 @@
   "release": "v1.15.1",
   "scripts_match_tag": true,
   "source_commit": "bc0922007e81e1a9abdff38988d2cb8c44a4d208",
+  "tar_members_regular_no_links": true,
   "tar_zip_payloads_match": true,
-  "target_count": 9
+  "target_count": 9,
+  "zip_members_regular_0755_no_symlinks": true
 }
