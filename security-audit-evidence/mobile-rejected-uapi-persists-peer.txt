@@ -1,0 +1,7 @@
+==48==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==48==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditRejectedEndpointUAPIStillChangesPeerSet
+    audit_security_test.go:183: DEMONSTRATED: a rejected endpoint UAPI update still leaves its earlier injected peer and route installed
+--- PASS: TestAuditRejectedEndpointUAPIStillChangesPeerSet (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.031s

@@ -142,6 +142,47 @@ func TestAuditMobileAcceptsLowOrderPeerKey(t *testing.T) {
 	t.Log("DEMONSTRATED: mobile config and wireguard-go accept a low-order peer key, allowing discovery encryption to publish with a publicly known shared key")
 }
 
+// wireguard-go applies UAPI lines as it parses them. A rejected tail line does
+// not roll back an earlier injected public_key/allowed_ip. The controller's
+// error check therefore cannot be a substitute for validating the endpoint
+// before it crosses the UAPI boundary.
+func TestAuditRejectedEndpointUAPIStillChangesPeerSet(t *testing.T) {
+	local, legitimate, rogue := auditKey(t), auditKey(t), auditKey(t)
+	legitimatePub, roguePub := legitimate.PublicKey(), rogue.PublicKey()
+	cfg := &tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{
+			PublicKey:  legitimatePub.String(),
+			AllowedIPs: []string{"10.89.0.2/32"},
+		}},
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	initial, err := buildUAPI(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(initial); err != nil {
+		t.Fatal(err)
+	}
+	endpoint := "127.0.0.1:9\npublic_key=" + auditHex(roguePub) + "\nallowed_ip=10.89.0.3/32\ninvalid_option=1"
+	update, err := buildPeerEndpointUAPI(legitimatePub.String(), endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(update); err == nil {
+		t.Fatal("expected invalid_option to reject the UAPI update")
+	}
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+auditHex(roguePub)) || !strings.Contains(got, "allowed_ip=10.89.0.3/32") {
+		t.Fatalf("rejected UAPI unexpectedly rolled back the injected peer: %q", got)
+	}
+	t.Log("DEMONSTRATED: a rejected endpoint UAPI update still leaves its earlier injected peer and route installed")
+}
+
 // A wrong signer normally fails discovery authentication. With a configured
 // low-order peer key, anyone who knows the local public key can instead make
 // a valid NaCl record for that peer and feed the UAPI injection path, without
