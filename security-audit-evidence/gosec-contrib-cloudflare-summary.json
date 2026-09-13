@@ -1,0 +1,8 @@
+{
+  "tool": "gosec",
+  "scope": "contrib/cloudflare nested Go module, default rules, source files only",
+  "files": 2,
+  "lines": 217,
+  "issues": 0,
+  "note": "Static rules are incomplete and do not establish absence of vulnerabilities."
+}

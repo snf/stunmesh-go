@@ -1,0 +1,9 @@
+Target: FuzzAuditOpenDHTGetParser (internal/plugin/builtin/opendht)
+Duration: one hour, coverage-guided Go fuzzing, four workers, isolated network namespace
+Scope: synthetic in-memory HTTP responses only; no public DHT writes
+
+fuzz: elapsed: 59m57s, execs: 63462364 (22579/sec), new interesting: 874 (total: 908)
+fuzz: elapsed: 1h0m0s, execs: 63544592 (27419/sec), new interesting: 874 (total: 908)
+fuzz: elapsed: 1h0m0s, execs: 63544592 (0/sec), new interesting: 874 (total: 908)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	3600.240s

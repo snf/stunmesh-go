@@ -1,0 +1,19 @@
+{
+  "upstream_elf_sha256": "8490f10a8180ce9eb11c255331a202d5b3d8a5ce313ff5ebc44673adbb751885",
+  "rebuilt_elf_sha256": "5fb3e97155e9d732301b4fe48fd6bc826eaafa23ba83cd58f9b6cc177ddf4d34",
+  "text_section_length": 4254236,
+  "text_byte_differences": 33773,
+  "changed_32bit_word_deltas_rebuilt_minus_upstream": {
+    "2": 152,
+    "8": 32594
+  },
+  "all_changed_words_have_delta_8_or_2": true,
+  "section_virtual_address_shift_bytes": {
+    ".data.rel.ro": 48,
+    ".gopclntab": 40,
+    ".text": 40,
+    ".rodata": 40,
+    ".plt": 48
+  },
+  "interpretation": "The extra GNU build-ID note in the rebuilt ELF shifts .text by 40 bytes, while aligned .plt and .data.rel.ro shift by 48. Thus branches/literal offsets from .text to those sections shift by 8 bytes (ARM branch immediate changes by 2 words). Every observed changed 32-bit .text word follows exactly one of these two arithmetic deltas. This is strong layout-correspondence evidence, not a formal proof of semantic equivalence for every instruction."
+}

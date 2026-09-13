@@ -1,0 +1,14 @@
+{
+  "workflow_input_origin": "git describe --tags --dirty in .github/workflows/release.yml",
+  "affected_composites": [
+    ".github/actions/build/action.yml:43-44",
+    ".github/actions/build-aar/action.yml:49-50",
+    ".github/actions/archive-plugins/action.yml:35-37"
+  ],
+  "synthetic_tag": "v$(printf${IFS}AUDIT_CANARY)",
+  "git_describe_in_temporary_local_repo": "v$(printf${IFS}AUDIT_CANARY)",
+  "rendered_build_aar_command": "export MOBILE_VERSION=\"v$(printf${IFS}AUDIT_CANARY)\"",
+  "local_shell_exit_code": 0,
+  "local_shell_result": "RESULT=vAUDIT_CANARY",
+  "scope": "Harmless local Git and shell interpolation proof. No GitHub tag was pushed, no remote workflow was executed, and no credentials were read."
+}

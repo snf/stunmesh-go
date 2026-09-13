@@ -1,0 +1,25 @@
+{
+  "queried_at_utc": "2026-09-13T04:37:00Z",
+  "source": "OSV querybatch API",
+  "module_count": 53,
+  "findings": [
+    {
+      "module": "golang.org/x/crypto",
+      "version": "v0.55.0",
+      "advisories": [
+        "GO-2026-5932",
+        "GO-2026-6354",
+        "GO-2026-6355"
+      ]
+    },
+    {
+      "module": "golang.org/x/mod",
+      "version": "v0.38.0",
+      "advisories": [
+        "GO-2026-6179",
+        "GO-2026-6180"
+      ]
+    }
+  ],
+  "note": "Presence in resolved module graph does not imply package linkage or reachable affected symbols; absence of OSV entries does not prove safety."
+}
