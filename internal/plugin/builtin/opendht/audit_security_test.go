@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	smcrypto "github.com/tjjh89017/stunmesh-go/internal/crypto"
@@ -17,6 +18,27 @@ import (
 	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
+
+func TestAuditOpenDHTProxyURLCredentialsReachFailureError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	// A synthetically configured proxy with HTTP Basic credentials can fail
+	// during an ordinary refresh. The caller forwards this error to the app log.
+	endpoint := strings.Replace(server.URL, "://", "://audit-user:audit-secret@", 1)
+	store, err := NewOpenDHTPlugin(pluginapi.PluginConfig{"endpoint": endpoint})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.(*OpenDHTPlugin).Close()
+	_, err = store.Get(context.Background(), testKey)
+	if err == nil || !strings.Contains(err.Error(), "audit-secret") {
+		t.Fatalf("expected synthetic URL credential in returned error, got %v", err)
+	}
+	t.Log("DEMONSTRATED: configured OpenDHT URL userinfo reaches a returned failure error")
+}
 
 func TestAuditNonpositiveOpenDHTTimeoutDisablesClientDeadline(t *testing.T) {
 	for _, configured := range []any{"0s", "-1s", 0, -1} {
