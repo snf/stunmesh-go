@@ -75,6 +75,27 @@ func TestAuditUnauthenticatedTimestampEclipsesValidRecord(t *testing.T) {
 	t.Log("DEMONSTRATED: a public writer's unauthenticated future timestamp eclipsed a valid discovery record")
 }
 
+// Two ordinary publications in one Unix second carry the same Ts. The
+// proxy returns a set, not a chronological stream, so the first line can be
+// the older endpoint. Get has no secondary sequence or authenticated age.
+func TestAuditEqualSecondRecordsSelectFirstProxyLine(t *testing.T) {
+	for _, order := range [][]string{{"older-ciphertext", "newer-ciphertext"}, {"newer-ciphertext", "older-ciphertext"}} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = fmt.Fprintln(w, line(t, defaultMagic, 100, order[0]))
+			_, _ = fmt.Fprintln(w, line(t, defaultMagic, 100, order[1]))
+		}))
+		got, err := newTestPlugin(t, server.URL).Get(context.Background(), testKey)
+		server.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != order[0] {
+			t.Fatalf("same-second record order %q selected %q, want first proxy line", order, got)
+		}
+	}
+	t.Log("DEMONSTRATED: two same-second records are selected by response order; the older endpoint can win a normal refresh")
+}
+
 // The public envelope timestamp can be changed independently of its valid
 // ciphertext. Decrypting before selection alone would not fix this replay.
 func TestAuditPublicWriterCanReplayOldValidCiphertext(t *testing.T) {

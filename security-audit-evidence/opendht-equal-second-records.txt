@@ -1,0 +1,7 @@
+==64==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==64==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditEqualSecondRecordsSelectFirstProxyLine
+    audit_security_test.go:96: DEMONSTRATED: two same-second records are selected by response order; the older endpoint can win a normal refresh
+--- PASS: TestAuditEqualSecondRecordsSelectFirstProxyLine (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	1.030s
