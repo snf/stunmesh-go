@@ -1,0 +1,5 @@
+=== RUN   TestAuditNonpositivePingCadencePassesConfigLoad
+    audit_security_test.go:27: DEMONSTRATED: nonpositive ping_monitor interval/timeout pass config.Load; enabled ping-monitor tickers would panic
+--- PASS: TestAuditNonpositivePingCadencePassesConfigLoad (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/config	0.005s
