@@ -1,0 +1,19 @@
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==63==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/outsider
+    audit_security_test.go:321: wrong discovery signer rejected; no peer configuration change
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/peer_static
+    audit_security_test.go:360: DEMONSTRATED: peer_static discovery record added an unconfigured WireGuard peer, reassigned the configured route to it, and removed the existing peer's PSK
+    audit_security_test.go:361: DEMONSTRATED: an end-to-end synthetic WireGuard handshake delivered the captured route's plaintext packet to the rogue peer
+    audit_security_test.go:362: No WireGuard handshake and no PSK knowledge were needed for the configuration change
+=== RUN   TestAuditDiscoveryRecordCanEnrollPeer/local_static
+    audit_security_test.go:360: DEMONSTRATED: local_static discovery record added an unconfigured WireGuard peer, reassigned the configured route to it, and removed the existing peer's PSK
+    audit_security_test.go:361: DEMONSTRATED: an end-to-end synthetic WireGuard handshake delivered the captured route's plaintext packet to the rogue peer
+    audit_security_test.go:362: No WireGuard handshake and no PSK knowledge were needed for the configuration change
+--- PASS: TestAuditDiscoveryRecordCanEnrollPeer (0.08s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/outsider (0.01s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/peer_static (0.03s)
+    --- PASS: TestAuditDiscoveryRecordCanEnrollPeer/local_static (0.03s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.099s

@@ -1,0 +1,6 @@
+Scope: audit-only FuzzAuditMobileSTUNResponse against the production mobilebind STUN packet classifier and response decoder.
+Source: audited Go commit 71a73228cd2bc001cdc5d485a16621a24bfae15a; audit harness on local security-audit branch.
+Environment: isolated bubblewrap namespace with no home/SSH/GitHub token and no network; Go 1.27.1.
+Command: go test -tags security_audit,mobile,builtin_all -run '^$' -fuzz=FuzzAuditMobileSTUNResponse -fuzztime=1h -parallel=4 ./internal/mobilebind
+Result: PASS, exit 0, 3600.086 seconds, 383,576,214 executions, 28 interesting inputs at completion; no panic or crash observed.
+Limit: this tests parser robustness, not STUN response source authenticity or the Android VPN runtime. The latter trust issue is described under G-04; the source-only and synthetic tests retain their separate conclusions.

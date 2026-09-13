@@ -114,7 +114,7 @@ func TestAuditMobileAcceptsLowOrderPeerKey(t *testing.T) {
 	zeroKey := base64.StdEncoding.EncodeToString(make([]byte, 32))
 	raw, err := json.Marshal(&tunnelConfig{
 		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
-		Peers: []peerConfig{{PublicKey: zeroKey, AllowedIPs: []string{"10.89.0.2/32"}}},
+		Peers:     []peerConfig{{PublicKey: zeroKey, AllowedIPs: []string{"10.89.0.2/32"}}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -186,8 +186,8 @@ func TestAuditLowOrderPeerAllowsOutsiderToEnrollRoguePeer(t *testing.T) {
 	// peer public key. The writer is not the configured (invalid) peer.
 	encrypted, err := smcrypto.NewEndpoint().Encrypt(context.Background(), &ctrl.EndpointEncryptRequest{
 		PeerPublicKey: entity.PeerPublicKey(zeroPeer),
-		PrivateKey: entity.PrivateKey(outsider),
-		Content: string(plain),
+		PrivateKey:    entity.PrivateKey(outsider),
+		Content:       string(plain),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -211,12 +211,14 @@ func TestAuditLowOrderPeerAllowsOutsiderToEnrollRoguePeer(t *testing.T) {
 	t.Log("DEMONSTRATED: with a malformed low-order peer key, an arbitrary DHT writer knowing the local public key can enroll a rogue WireGuard peer through discovery without any configured private key")
 }
 
-// A discovery peer possessing its static private key can add an entirely
-// different peer through an endpoint record, without knowing the WG PSK and
-// without completing a WireGuard handshake.
+// Possession of either participant's static private key permits forging a
+// discovery record, because NaCl box uses their symmetric X25519 result.
+// Such a record can add an entirely different peer without the WG PSK or a
+// WireGuard handshake. An unrelated static key is the negative control.
 func TestAuditDiscoveryRecordCanEnrollPeer(t *testing.T) {
-	for _, authenticated := range []bool{false, true} {
-		t.Run(fmt.Sprintf("correct_discovery_signer_%t", authenticated), func(t *testing.T) {
+	for _, signerMode := range []string{"outsider", "peer_static", "local_static"} {
+		t.Run(signerMode, func(t *testing.T) {
+			authenticated := signerMode != "outsider"
 			local, legitimate, rogue, outsider := auditKey(t), auditKey(t), auditKey(t), auditKey(t)
 			psk := auditKey(t)
 			cfg := &tunnelConfig{
@@ -279,14 +281,17 @@ func TestAuditDiscoveryRecordCanEnrollPeer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			signer := outsider
-			if authenticated {
+			signer, recipientPub := outsider, localPub
+			switch signerMode {
+			case "peer_static":
 				signer = legitimate
+			case "local_static":
+				signer, recipientPub = local, legitimatePub
 			}
 			encrypted, err := smcrypto.NewEndpoint().Encrypt(context.Background(), &ctrl.EndpointEncryptRequest{
-				PeerPublicKey: entity.PeerPublicKey(local.PublicKey()),
-				PrivateKey: entity.PrivateKey(signer),
-				Content: string(plain),
+				PeerPublicKey: entity.PeerPublicKey(recipientPub),
+				PrivateKey:    entity.PrivateKey(signer),
+				Content:       string(plain),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -352,7 +357,7 @@ func TestAuditDiscoveryRecordCanEnrollPeer(t *testing.T) {
 			case <-time.After(10 * time.Second):
 				t.Fatal("rogue WG peer did not receive the tunneled packet")
 			}
-			t.Log("DEMONSTRATED: authenticated discovery record added an unconfigured WireGuard peer, reassigned the configured route to it, and removed the existing peer's PSK")
+			t.Logf("DEMONSTRATED: %s discovery record added an unconfigured WireGuard peer, reassigned the configured route to it, and removed the existing peer's PSK", signerMode)
 			t.Log("DEMONSTRATED: an end-to-end synthetic WireGuard handshake delivered the captured route's plaintext packet to the rogue peer")
 			t.Log("No WireGuard handshake and no PSK knowledge were needed for the configuration change")
 		})
