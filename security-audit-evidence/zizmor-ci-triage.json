@@ -1,0 +1,33 @@
+{
+  "by_rule_and_severity": {
+    "anonymous-definition/Informational": 1,
+    "artipacked/Low": 18,
+    "concurrency-limits/Low": 3,
+    "dangerous-triggers/High": 1,
+    "dependabot-cooldown/Medium": 2,
+    "excessive-permissions/High": 2,
+    "excessive-permissions/Low": 1,
+    "excessive-permissions/Medium": 19,
+    "github-env/High": 1,
+    "obfuscation/Low": 4,
+    "secrets-outside-env/Medium": 3,
+    "self-repository/Low": 16,
+    "superfluous-actions/Informational": 4,
+    "template-injection/High": 35,
+    "template-injection/Informational": 4,
+    "template-injection/Low": 8,
+    "undocumented-permissions/Low": 9,
+    "unpinned-uses/High": 51
+  },
+  "downloaded_release_archive_sha256": "e65324f4430c2717591937edcec90ccbefaf14c174f8ec9415e03ca875b46e1a",
+  "finding_count": 182,
+  "isolation": "bubblewrap: no host home, SSH, GitHub token, or network",
+  "mode": "offline auditor persona, ignores/config disabled, no code changes",
+  "release_archive_attestation": "not verified: installed gh CLI has no attestation subcommand; scanner results treated as leads, not independent authority",
+  "tool": "zizmor v1.30.1",
+  "triage": [
+    "High-confidence template-injection flags in composite action inputs overlap the locally reproduced G-12 release-tag injection; not every flagged input has an attacker-controlled caller.",
+    "Unpinned action references and the privileged mutable CLA workflow overlap G-07; fork Actions remain disabled.",
+    "No scanner result establishes a successful GitHub-hosted exploit or compromised dependency."
+  ]
+}
