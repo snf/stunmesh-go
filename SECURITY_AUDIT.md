@@ -59,7 +59,7 @@ The [WireGuard PSK is mixed into its handshake](https://www.wireguard.com/protoc
 
 ### G-05 — Medium: DHT HTTP response is unbounded
 
-**Confirmed from source; memory-exhaustion exploit not run.** `opendht.go:192–223` uses `io.ReadAll(resp.Body)` before status checking, and `Get` processes every line. A malicious or broken configured proxy can force unbounded allocation; a successful malformed body also prevents request fallback. The optional built-in Cloudflare plugin has the same unbounded read. TLS verifies a proxy identity, not response safety.
+**Confirmed from source; memory-exhaustion exploit not run.** `opendht.go:192–223` uses `io.ReadAll(resp.Body)` before status checking, and `Get` processes every line. A malicious or broken configured proxy can force unbounded allocation; a successful malformed body also prevents request fallback. `internal/plugin/builtin/config.go:84–95` accepts a configured OpenDHT `timeout` of zero or less; Go's `http.Client` then has no request deadline, so a stalled proxy can block the refresh cycle until its outer context is cancelled. This is a local-configuration precondition, not something a DHT writer can change. The optional built-in Cloudflare plugin has the same unbounded read. TLS verifies a proxy identity, not response safety.
 
 **Fix:** Use a strict `io.LimitReader` cap, stream a limited number of limited-size entries, reject implausible timeout values, and retry alternate configured proxies on invalid successful responses.
 
