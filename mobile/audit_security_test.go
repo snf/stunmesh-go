@@ -106,6 +106,111 @@ func auditKey(t *testing.T) wgtypes.Key {
 
 func auditHex(k wgtypes.Key) string { return hex.EncodeToString(k[:]) }
 
+// A malformed low-order peer key passes mobile JSON validation and is also
+// accepted as a configured wireguard-go peer. Its handshake will fail, but
+// the controller can still publish an endpoint record encrypted to that key.
+func TestAuditMobileAcceptsLowOrderPeerKey(t *testing.T) {
+	local := auditKey(t)
+	zeroKey := base64.StdEncoding.EncodeToString(make([]byte, 32))
+	raw, err := json.Marshal(&tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{PublicKey: zeroKey, AllowedIPs: []string{"10.89.0.2/32"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := parseConfig(string(raw))
+	if err != nil {
+		t.Fatalf("mobile parser rejected low-order key: %v", err)
+	}
+	uapi, err := buildUAPI(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	if err := dev.IpcSet(uapi); err != nil {
+		t.Fatalf("wireguard-go rejected low-order configured key: %v", err)
+	}
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+strings.Repeat("0", 64)) {
+		t.Fatal("wireguard-go did not retain the low-order configured peer")
+	}
+	t.Log("DEMONSTRATED: mobile config and wireguard-go accept a low-order peer key, allowing discovery encryption to publish with a publicly known shared key")
+}
+
+// A wrong signer normally fails discovery authentication. With a configured
+// low-order peer key, anyone who knows the local public key can instead make
+// a valid NaCl record for that peer and feed the UAPI injection path, without
+// possessing any configured private key or PSK. This is a malformed-config
+// precondition, not a break against a properly generated peer public key.
+func TestAuditLowOrderPeerAllowsOutsiderToEnrollRoguePeer(t *testing.T) {
+	local, rogue, outsider := auditKey(t), auditKey(t), auditKey(t)
+	var zeroPeer wgtypes.Key
+	zeroPubB64 := base64.StdEncoding.EncodeToString(zeroPeer[:])
+	cfg := &tunnelConfig{
+		Interface: ifaceConfig{PrivateKey: local.String(), MTU: 1420},
+		Peers: []peerConfig{{
+			PublicKey: zeroPubB64, AllowedIPs: []string{"10.89.0.2/32"},
+			Plugin: "fixture", Protocol: "ipv4",
+		}},
+	}
+	dev := device.NewDevice(tuntest.NewChannelTUN().TUN(), mobilebind.New(nil), device.NewLogger(device.LogLevelSilent, ""))
+	defer dev.Close()
+	uapi, err := buildUAPI(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.IpcSet(uapi); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.Up(); err != nil {
+		t.Fatal(err)
+	}
+	n := &Node{cfg: cfg, dev: dev, running: true, listener: &fakeListener{}}
+	c, err := newController(n, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.manager.Close()
+	roguePub, localPub := rogue.PublicKey(), local.PublicKey()
+	payload := "127.0.0.1:9\npublic_key=" + auditHex(roguePub) + "\nallowed_ip=10.89.0.2/32"
+	plain, err := json.Marshal(ctrl.EndpointData{IPv4: payload})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Every private scalar obtains the same all-zero shared point with this
+	// peer public key. The writer is not the configured (invalid) peer.
+	encrypted, err := smcrypto.NewEndpoint().Encrypt(context.Background(), &ctrl.EndpointEncryptRequest{
+		PeerPublicKey: entity.PeerPublicKey(zeroPeer),
+		PrivateKey: entity.PrivateKey(outsider),
+		Content: string(plain),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := entity.NewPeerId(localPub[:], zeroPeer[:])
+	if err := c.manager.LoadPlugins(context.Background(), map[string]pluginapi.PluginDefinition{
+		"fixture": {Type: "builtin", Config: pluginapi.PluginConfig{
+			"name": "audit_static_record", "key": id.RemoteEndpointKey(), "value": encrypted.Data,
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	c.establish(context.Background(), nil)
+	got, err := dev.IpcGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "public_key="+auditHex(roguePub)) {
+		t.Fatalf("outsider's discovery record did not enroll rogue peer: %q", got)
+	}
+	t.Log("DEMONSTRATED: with a malformed low-order peer key, an arbitrary DHT writer knowing the local public key can enroll a rogue WireGuard peer through discovery without any configured private key")
+}
+
 // A discovery peer possessing its static private key can add an entirely
 // different peer through an endpoint record, without knowing the WG PSK and
 // without completing a WireGuard handshake.

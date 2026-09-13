@@ -1,0 +1,17 @@
+==95==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==95==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditMobileAcceptsLowOrderPeerKey
+    audit_security_test.go:142: DEMONSTRATED: mobile config and wireguard-go accept a low-order peer key, allowing discovery encryption to publish with a publicly known shared key
+--- PASS: TestAuditMobileAcceptsLowOrderPeerKey (0.01s)
+=== RUN   TestAuditLowOrderPeerAllowsOutsiderToEnrollRoguePeer
+    audit_security_test.go:211: DEMONSTRATED: with a malformed low-order peer key, an arbitrary DHT writer knowing the local public key can enroll a rogue WireGuard peer through discovery without any configured private key
+--- PASS: TestAuditLowOrderPeerAllowsOutsiderToEnrollRoguePeer (0.02s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.048s
+==96==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==96==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditLowOrderPeerKeyMakesDiscoveryRecordPublic
+    audit_security_test.go:80: DEMONSTRATED: a low-order configured peer key makes endpoint-record encryption public, even though its WireGuard handshake cannot complete
+--- PASS: TestAuditLowOrderPeerKeyMakesDiscoveryRecordPublic (0.01s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/crypto	1.029s
