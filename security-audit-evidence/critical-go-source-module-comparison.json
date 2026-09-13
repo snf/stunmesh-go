@@ -99,6 +99,25 @@
       "extra_in_module": [],
       "mismatched": [],
       "limitations": "This checks cached module source against official Git source at the same tag, not that the authors, source repository, or toolchain are benign."
+    },
+    {
+      "name": "Go x/crypto x509roots/fallback",
+      "official_source": "https://go.googlesource.com/crypto",
+      "official_commit": "d701c51f7e4e57f61c4947390514fe631e06202f",
+      "module_version": "v0.0.0-20260723152544-d701c51f7e4e",
+      "method": "Compare the nested x509roots/fallback source subtree to the independently extracted Go module at its pinned commit.",
+      "tracked_count": 8,
+      "module_file_count": 9,
+      "byte_identical_count": 8,
+      "missing_from_module": [],
+      "extra_in_module": [
+        "LICENSE"
+      ],
+      "mismatched": [],
+      "bundle_der_sha256": "4f13b21a3f9a37e5d775d326eaab7c481481b811b89b67326293415997ec7f5c",
+      "limitations": "Checks source and bundled CA bytes against the official Git commit, not whether the roots or publisher are trustworthy.",
+      "extra_file_explanation": "The Go module archive includes a copy of the repository-root LICENSE; it also matches official source byte-for-byte.",
+      "root_license_byte_identical": true
     }
   ]
 }
