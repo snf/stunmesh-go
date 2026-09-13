@@ -1,0 +1,13 @@
+2026-09-13. Isolated bubblewrap namespace, no external network or production config.
+
+Target: internal/config/FuzzAuditConfigLoaderFilteredSmall
+Go 1.27.1 coverage-guided fuzzing, -fuzztime=1h, -parallel=4.
+Result: PASS; 56,551,058 executions over 3600.077 seconds; no new crash.
+The complete raw Go fuzzer log is retained in the separate local audit
+scratch workspace at evidence/config-filtered-small-fuzz-guided-1h.txt.
+
+The audit-only harness caps candidate suffixes at 256 bytes and skips
+YAML values containing the nil mapping-key class that already triggers
+G-13. It then runs the unchanged production config loader on each accepted
+candidate. This continuation searches for independent parser failures;
+it does not show that G-13 is fixed, and it does not cover larger files.
