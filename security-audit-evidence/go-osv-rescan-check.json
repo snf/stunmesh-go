@@ -1,0 +1,41 @@
+{
+  "api": "https://api.osv.dev/v1/querybatch",
+  "checked_utc": "2026-09-13T10:50:16.091253+00:00",
+  "findings": [
+    {
+      "advisories": [
+        "GO-2026-5320"
+      ],
+      "module": "github.com/yuin/goldmark",
+      "version": "v1.4.13"
+    },
+    {
+      "advisories": [
+        "GO-2026-5932",
+        "GO-2026-6354",
+        "GO-2026-6355"
+      ],
+      "module": "golang.org/x/crypto",
+      "version": "v0.55.0"
+    },
+    {
+      "advisories": [
+        "GO-2026-6222"
+      ],
+      "module": "golang.org/x/image",
+      "version": "v0.44.0"
+    },
+    {
+      "advisories": [
+        "GO-2026-6179",
+        "GO-2026-6180"
+      ],
+      "module": "golang.org/x/mod",
+      "version": "v0.38.0"
+    }
+  ],
+  "limitation": "Module presence does not prove linked affected code or reachable vulnerability.",
+  "module_count": 58,
+  "same_findings": true,
+  "same_module_count": true
+}
