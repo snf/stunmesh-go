@@ -40,7 +40,7 @@ type auditRecordStore struct {
 // The Android app documents "built-in plugins only", but JSON crosses the
 // gomobile boundary into the shared manager without an allowlist. In a Linux
 // mobile-core build the same path runs a local command. This verifies the
-// admission bug; an Android OS process execution is tested separately.
+// admission bug; process execution on Android OS remains untested.
 func TestAuditMobileCoreAcceptsExecutablePlugin(t *testing.T) {
 	dir := t.TempDir()
 	marker := filepath.Join(dir, "marker")
