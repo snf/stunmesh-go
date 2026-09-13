@@ -1,0 +1,29 @@
+?   	github.com/tjjh89017/stunmesh-go	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/app	1.026s
+ok  	github.com/tjjh89017/stunmesh-go/internal/config	1.074s
+ok  	github.com/tjjh89017/stunmesh-go/internal/crypto	1.043s
+ok  	github.com/tjjh89017/stunmesh-go/internal/ctrl	1.404s
+?   	github.com/tjjh89017/stunmesh-go/internal/ctrl/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/daemon	1.359s
+ok  	github.com/tjjh89017/stunmesh-go/internal/entity	1.023s
+?   	github.com/tjjh89017/stunmesh-go/internal/entity/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/logger	1.020s
+ok  	github.com/tjjh89017/stunmesh-go/internal/mobilebind	1.022s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin	1.130s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin	1.020s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/cloudflare	1.020s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	1.103s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/dialer	1.027s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/registry	1.022s
+ok  	github.com/tjjh89017/stunmesh-go/internal/queue	1.123s
+ok  	github.com/tjjh89017/stunmesh-go/internal/repo	1.036s
+?   	github.com/tjjh89017/stunmesh-go/internal/repo/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/routeprobe	1.024s
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	6.036s
+ok  	github.com/tjjh89017/stunmesh-go/internal/wg	1.025s
+ok  	github.com/tjjh89017/stunmesh-go/internal/wgproxy	1.410s
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.190s
+?   	github.com/tjjh89017/stunmesh-go/pluginapi	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/test/e2e/proxy	1.017s
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/proxy/runner	[no test files]
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/realnet/canary	[no test files]
