@@ -1,0 +1,18 @@
+{
+  "upstream_classes_jar_sha256": "897ab0f10873bdfd828480838e8c345d5542573a9d392769196eabc22cafbb5c",
+  "rebuilt_classes_jar_sha256": "afcd009c4959c69eaace053de2b00b15fdb989c8117d19780ce3cfea6a8038c1",
+  "same_entry_names": true,
+  "entry_count": 21,
+  "different_entries": [
+    "go/Seq$GoRefQueue$1.class"
+  ],
+  "changed_entry_hashes": {
+    "go/Seq$GoRefQueue$1.class": {
+      "upstream_sha256": "e7968f73856e8860f59dbefbdc2d37e62930698b79b9faacaaf6633185d5d6da",
+      "rebuilt_sha256": "446699e654b9432ff84c9222134cc21b05ca525a4d05f6c47496d41d1854ebce"
+    }
+  },
+  "changed_class_javap_code_and_line_listing_identical": true,
+  "javap_verbose_difference": "Only the constructor MethodParameters attribute is present in the rebuilt class; methods, instructions, line numbers, fields and names match.",
+  "limitation": "Full classes.jar bytes are not identical; comparison is source-level/bytecode-focused, not a formal proof of every JVM attribute."
+}
