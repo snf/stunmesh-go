@@ -27,6 +27,15 @@ The Go daemon uses STUN to learn its public UDP mapping, encrypts an endpoint re
 | WG handshake/data | `wireguard-go` on Android; kernel/official WG via `wgctrl` on desktop | **Yes** | Ordinary packets retain WG authentication unless G-01 changes the authorized peer set. |
 | Optional Cloudflare store | Cloudflare bearer API token | No | Authenticates storage calls, not WG peers. Not needed for OpenDHT. |
 
+The demonstrated attack conditions are materially different:
+
+| Actor or condition | Discovery record possible? | Demonstrated effect |
+| --- | --- | --- |
+| Arbitrary public DHT writer, two valid generated peer keys, no private key | Can copy, replay, or eclipse records; cannot author a new valid NaCl record in the control test | Endpoint confusion or reconnection failure; no tested peer enrollment. |
+| Holder of either configured WireGuard static private key, even without the PSK | Can author a valid NaCl record for that pair | G-01 changed Android wireguard-go authorization and delivered traffic to a new peer in the synthetic test. |
+| Arbitrary public DHT writer when a configured peer key is all-zero/low-order | Can derive the NaCl record key without a private key | G-14 composed with G-01 to enroll a new peer in the synthetic test. |
+| User imports a malicious profile | Can set initial endpoint and route text before discovery | G-01 installed a hidden peer while retaining a valid Android route in the synthetic test. |
+
 The [WireGuard PSK is mixed into its handshake](https://www.wireguard.com/protocol/), not NaCl records. OpenDHT is [public read/write storage](https://github.com/savoirfairelinux/opendht) with [GET/POST on the hash index](https://github.com/savoirfairelinux/opendht/blob/be210e27da674be618e2d4cbc422a897b3daff96/src/dht_proxy_server.cpp). Threats below distinguish an arbitrary DHT writer, a compromised peer static key, a malicious configured peer, an on-path STUN actor, imported local configuration, and a compromised build account.
 
 ## Findings
