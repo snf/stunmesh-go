@@ -4,6 +4,7 @@ package stun
 
 import (
 	"context"
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -62,4 +63,79 @@ func TestAuditUnsolicitedSTUNControlsDiscoveredEndpoint(t *testing.T) {
 		t.Fatalf("forged mapped address not returned: %+v", mapped)
 	}
 	t.Log("DEMONSTRATED: raw STUN reader accepted an unsolicited response from 127.0.0.2 and extracted the attacker-chosen endpoint")
+}
+
+// The Linux raw-socket listener delivers only one packet and then returns.
+// A syntactically valid but unusable reply from the first configured STUN
+// server therefore consumes the listener, leaving the second server's valid
+// reply unread despite the resolver's documented fallback loop.
+func TestAuditRawSTUNFallbackCannotReadSecondReply(t *testing.T) {
+	victim, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer victim.Close()
+	port := uint16(victim.LocalAddr().(*net.UDPAddr).Port)
+
+	monitor, err := New(context.Background(), "", port, "ipv4", 0, nil, false)
+	if err != nil {
+		t.Skipf("isolated environment cannot open the production raw STUN socket: %v", err)
+	}
+	defer monitor.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+	monitor.Start(ctx)
+
+	serveOnce := func(mapped bool) (*net.UDPConn, <-chan error) {
+		t.Helper()
+		server, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan error, 1)
+		go func() {
+			buf := make([]byte, 1500)
+			_ = server.SetReadDeadline(time.Now().Add(8 * time.Second))
+			n, src, err := server.ReadFromUDP(buf)
+			if err != nil {
+				done <- err
+				return
+			}
+			req := &stunlib.Message{Raw: buf[:n]}
+			if err := req.Decode(); err != nil {
+				done <- err
+				return
+			}
+			setters := []stunlib.Setter{stunlib.NewTransactionIDSetter(req.TransactionID), stunlib.BindingSuccess}
+			if mapped {
+				setters = append(setters, &stunlib.XORMappedAddress{IP: net.IPv4(198, 51, 100, 88), Port: 51820})
+			}
+			resp, err := stunlib.Build(setters...)
+			if err != nil {
+				done <- err
+				return
+			}
+			_, err = server.WriteToUDP(resp.Raw, src)
+			done <- err
+		}()
+		return server, done
+	}
+	first, firstDone := serveOnce(false)
+	defer first.Close()
+	second, secondDone := serveOnce(true)
+	defer second.Close()
+
+	if _, _, err := monitor.Connect(ctx, first.LocalAddr().String()); !errors.Is(err, ErrNoMappedAddress) {
+		t.Fatalf("first STUN response should lack a mapped endpoint: %v", err)
+	}
+	if err := <-firstDone; err != nil {
+		t.Fatalf("first server failed to answer: %v", err)
+	}
+	if _, _, err := monitor.Connect(ctx, second.LocalAddr().String()); !errors.Is(err, ErrTimeout) {
+		t.Fatalf("second response should be lost after listener exits: %v", err)
+	}
+	if err := <-secondDone; err != nil {
+		t.Fatalf("second server failed to answer: %v", err)
+	}
+	t.Log("DEMONSTRATED: a valid reply from the second STUN server timed out after the first reply consumed the raw-socket listener")
 }

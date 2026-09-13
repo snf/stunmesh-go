@@ -1,0 +1,7 @@
+==65==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==65==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditRawSTUNFallbackCannotReadSecondReply
+    audit_security_test.go:140: DEMONSTRATED: a valid reply from the second STUN server timed out after the first reply consumed the raw-socket listener
+--- PASS: TestAuditRawSTUNFallbackCannotReadSecondReply (5.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	6.025s
