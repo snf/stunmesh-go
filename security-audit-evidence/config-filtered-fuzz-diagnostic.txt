@@ -1,0 +1,23 @@
+Filtered YAML configuration fuzz diagnostic (2026-09-13 UTC)
+
+The original coverage-guided config campaign found G-13, a reproducible
+nil-mapping-key panic. A follow-up audit-only harness first YAML-decodes each
+candidate and skips that known class before calling the unmodified loader.
+
+The first follow-up was scheduled for one hour but was interrupted after
+130 seconds by an investigator-sent SIGQUIT to a stalled fuzz worker to
+capture its goroutine stack. The fuzzer reported EOF while minimizing and
+saved corpus hash 0512e6f6c90645a6. That input was rerun and passed
+immediately; the failure was induced by our diagnostic signal, not a
+reproduced source defect. It must not be counted as a discovered crash.
+
+A scratch-only diagnostic rerun with a goroutine-stack timer and the same
+filtered target completed three minutes successfully: 925,819 executions,
+418 interesting cases, PASS. Captured worker stacks during zero-execution
+intervals were in internal/fuzz.minimizeBytes and the audit-only YAML
+prefilter's yaml.Unmarshal. No per-input two-second watchdog artifact or
+independent panic was produced. This bounds the finding: Go fuzz minimization
+and repeated parsing made the campaign slow, but the diagnostic did not
+establish a production YAML parser hang. The complete transient logs and
+stack captures remain in the separate isolated audit workspace, not this
+repository. Further time-bounded filtered fuzzing is planned.
