@@ -1,0 +1,20 @@
+Source release tag v1.15.1 signature check (2026-09-13).
+The tag is annotated, points at the rebuilt source commit, and is not cryptographically signed.
+
+$ git cat-file -t refs/tags/v1.15.1
+tag
+exit_code=0
+
+$ git rev-parse v1.15.1^{commit}
+bc0922007e81e1a9abdff38988d2cb8c44a4d208
+exit_code=0
+
+$ git tag -v v1.15.1
+object bc0922007e81e1a9abdff38988d2cb8c44a4d208
+type commit
+tag v1.15.1
+tagger Date Huang <tjjh89017@hotmail.com> 1788765592 +0800
+
+v1.15.1
+error: no signature found
+exit_code=1
