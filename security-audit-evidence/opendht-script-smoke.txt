@@ -1,0 +1,15 @@
+2026-09-13. Offline bubblewrap namespace, local synthetic HTTP servers only.
+
+Commands:
+  sh ./contrib/opendht/smoke_test.sh
+  sh ./contrib/opendht-shell/smoke_test.sh
+
+Both completed PASS. They covered set/get, missing key, malformed request or
+key, multiple proxy values and most-recent selection, proxy fallback, and
+missing endpoint configuration. These optional process plugins were not
+chosen for the proposed OpenDHT-only native deployment. Their smoke tests
+do not establish security against malicious proxy content or dependency
+compromise. The separate cloudflare-shell smoke script was not run because
+it requires dynamic /dev/stdin sourcing, while the audit sandbox deliberately
+does not expose host procfs; the executable-plugin risk is separately proven
+in audit-only Go tests.
