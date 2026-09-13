@@ -1,0 +1,37 @@
+?   	github.com/tjjh89017/stunmesh-go	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/app	1.022s
+ok  	github.com/tjjh89017/stunmesh-go/internal/config	1.058s
+ok  	github.com/tjjh89017/stunmesh-go/internal/crypto	1.034s
+ok  	github.com/tjjh89017/stunmesh-go/internal/ctrl	1.390s
+?   	github.com/tjjh89017/stunmesh-go/internal/ctrl/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/daemon	1.353s
+ok  	github.com/tjjh89017/stunmesh-go/internal/entity	1.018s
+?   	github.com/tjjh89017/stunmesh-go/internal/entity/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/logger	1.015s
+ok  	github.com/tjjh89017/stunmesh-go/internal/mobilebind	1.014s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin	1.093s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin	1.014s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/cloudflare	1.015s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	1.060s
+==332==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==332==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+--- FAIL: TestTransportDialsWithRequestContext (0.00s)
+    dialer_test.go:112: Get "http://127.0.0.1:34225": dial tcp 127.0.0.1:34225: operation not permitted
+--- FAIL: TestDialDNSUsesEscapeServers (0.00s)
+    dialer_test.go:223: dial udp 192.0.2.1:53: connect: network is unreachable
+FAIL
+FAIL	github.com/tjjh89017/stunmesh-go/internal/plugin/dialer	0.017s
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/registry	1.015s
+ok  	github.com/tjjh89017/stunmesh-go/internal/queue	1.116s
+ok  	github.com/tjjh89017/stunmesh-go/internal/repo	1.023s
+?   	github.com/tjjh89017/stunmesh-go/internal/repo/mock	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/internal/routeprobe	1.016s
+ok  	github.com/tjjh89017/stunmesh-go/internal/stun	1.018s
+ok  	github.com/tjjh89017/stunmesh-go/internal/wg	1.019s
+ok  	github.com/tjjh89017/stunmesh-go/internal/wgproxy	1.397s
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.152s
+?   	github.com/tjjh89017/stunmesh-go/pluginapi	[no test files]
+ok  	github.com/tjjh89017/stunmesh-go/test/e2e/proxy	1.013s
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/proxy/runner	[no test files]
+?   	github.com/tjjh89017/stunmesh-go/test/e2e/realnet/canary	[no test files]
+FAIL
