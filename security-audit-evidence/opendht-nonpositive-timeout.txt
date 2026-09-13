@@ -1,0 +1,7 @@
+==62==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==62==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+=== RUN   TestAuditNonpositiveOpenDHTTimeoutDisablesClientDeadline
+    audit_security_test.go:35: DEMONSTRATED: zero and negative OpenDHT timeout settings remove the HTTP client deadline
+--- PASS: TestAuditNonpositiveOpenDHTTimeoutDisablesClientDeadline (0.00s)
+PASS
+ok  	github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht	1.019s

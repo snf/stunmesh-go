@@ -14,8 +14,26 @@ import (
 	smcrypto "github.com/tjjh89017/stunmesh-go/internal/crypto"
 	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
+	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
+
+func TestAuditNonpositiveOpenDHTTimeoutDisablesClientDeadline(t *testing.T) {
+	for _, configured := range []any{"0s", "-1s", 0, -1} {
+		store, err := NewOpenDHTPlugin(pluginapi.PluginConfig{
+			"endpoint": "https://example.invalid", "timeout": configured,
+		})
+		if err != nil {
+			t.Fatalf("configured timeout %v was rejected: %v", configured, err)
+		}
+		p := store.(*OpenDHTPlugin)
+		if p.client.Timeout > 0 {
+			t.Fatalf("configured timeout %v unexpectedly retained a client deadline: %v", configured, p.client.Timeout)
+		}
+		_ = p.Close()
+	}
+	t.Log("DEMONSTRATED: zero and negative OpenDHT timeout settings remove the HTTP client deadline")
+}
 
 // Passing documents a baseline availability failure: freshness is decided
 // before the endpoint ciphertext is authenticated by the caller.
@@ -51,8 +69,8 @@ func TestAuditPublicWriterCanReplayOldValidCiphertext(t *testing.T) {
 		t.Helper()
 		res, err := encryptor.Encrypt(context.Background(), &ctrl.EndpointEncryptRequest{
 			PeerPublicKey: entity.PeerPublicKey(recipient.PublicKey()),
-			PrivateKey: entity.PrivateKey(sender),
-			Content: content,
+			PrivateKey:    entity.PrivateKey(sender),
+			Content:       content,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -76,8 +94,8 @@ func TestAuditPublicWriterCanReplayOldValidCiphertext(t *testing.T) {
 	}
 	res, err := encryptor.Decrypt(context.Background(), &ctrl.EndpointDecryptRequest{
 		PeerPublicKey: entity.PeerPublicKey(sender.PublicKey()),
-		PrivateKey: entity.PrivateKey(recipient),
-		Data: got,
+		PrivateKey:    entity.PrivateKey(recipient),
+		Data:          got,
 	})
 	if err != nil {
 		t.Fatal(err)
