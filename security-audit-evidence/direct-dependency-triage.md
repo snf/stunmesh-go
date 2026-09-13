@@ -35,6 +35,13 @@ relative to published artifacts and source, but **cannot prove** that an
 upstream author, dependency account or release process was not compromised.
 No downloaded module was classified as malicious in this audit.
 
+`go mod why -m` paths for selected dependencies are recorded in
+`go-mod-why-selected.txt`: desktop Pion STUN pulls its DTLS and transport
+families, while `go-pcap` pulls `gopacket` only for other-platform packet
+capture. This explains why a small STUN feature can bring a larger module
+graph. Removing it would require a reviewed replacement and parity tests;
+the current high-severity Android UAPI flaw is the immediate priority.
+
 For the actual NAS/phone fork, retain only OpenDHT as the compiled built-in,
 remove the optional executable/shell plugin constructors, pin exact module and
 toolchain versions, and separate mobile source from desktop YAML/wgctrl code.

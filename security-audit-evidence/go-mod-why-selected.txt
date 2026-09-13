@@ -1,0 +1,35 @@
+# github.com/pion/dtls/v3
+github.com/tjjh89017/stunmesh-go/internal/stun
+github.com/pion/stun/v3
+github.com/pion/dtls/v3
+
+# github.com/wlynxg/anet
+github.com/tjjh89017/stunmesh-go/internal/stun
+github.com/pion/stun/v3
+github.com/pion/transport/v4/stdnet
+github.com/wlynxg/anet
+
+# github.com/gopacket/gopacket
+github.com/tjjh89017/stunmesh-go/internal/stun
+github.com/packetcap/go-pcap
+github.com/gopacket/gopacket
+
+# github.com/google/wire
+github.com/tjjh89017/stunmesh-go/app
+github.com/google/wire
+
+# go.uber.org/mock
+github.com/tjjh89017/stunmesh-go/internal/ctrl/mock
+go.uber.org/mock/gomock
+
+# golang.org/x/mobile
+github.com/tjjh89017/stunmesh-go/mobile
+golang.org/x/mobile/bind
+
+# golang.zx2c4.com/wireguard/wgctrl
+github.com/tjjh89017/stunmesh-go/internal/wg
+golang.zx2c4.com/wireguard/wgctrl
+
+# go.yaml.in/yaml/v3
+github.com/tjjh89017/stunmesh-go/internal/config
+go.yaml.in/yaml/v3
