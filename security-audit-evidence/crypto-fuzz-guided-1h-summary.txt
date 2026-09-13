@@ -1,0 +1,9 @@
+Target: FuzzAuditEndpointDecrypt (internal/crypto)
+Duration: one hour, coverage-guided Go fuzzing, four workers, isolated network namespace
+Scope: synthetic NaCl endpoint records and arbitrary parser mutations; no production keys or network writes
+
+fuzz: elapsed: 59m57s, execs: 129507424 (36692/sec), new interesting: 1 (total: 10)
+fuzz: elapsed: 1h0m0s, execs: 129622592 (38388/sec), new interesting: 1 (total: 10)
+fuzz: elapsed: 1h0m0s, execs: 129622592 (0/sec), new interesting: 1 (total: 10)
+PASS
+ok  github.com/tjjh89017/stunmesh-go/internal/crypto  3600.178s
