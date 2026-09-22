@@ -64,7 +64,7 @@ type controller struct {
 }
 
 // The discovery view contains no private key or PSK.
-type discoveryPeer struct{ Name, PublicKey, Plugin, Protocol string }
+type discoveryPeer struct{ Name, PublicKey, Plugin, Protocol, Bootstrap string }
 type controllerConfig struct {
 	Interface              struct{ Protocol string }
 	Stun                   stunConfig
@@ -77,7 +77,7 @@ func newController(node *Node, bind *mobilebind.Bind, pub [32]byte) (*controller
 	view := &controllerConfig{Stun: cfg.Stun, RefreshIntervalSeconds: cfg.RefreshIntervalSeconds}
 	view.Interface.Protocol = cfg.Interface.Protocol
 	for _, p := range cfg.Peers {
-		view.Peers = append(view.Peers, discoveryPeer{Name: p.Name, PublicKey: p.PublicKey, Plugin: p.Plugin, Protocol: p.Protocol})
+		view.Peers = append(view.Peers, discoveryPeer{Name: p.Name, PublicKey: p.PublicKey, Plugin: p.Plugin, Protocol: p.Protocol, Bootstrap: p.Endpoint})
 	}
 
 	defs := make(map[string]pluginapi.PluginDefinition, len(cfg.Plugins))
@@ -367,27 +367,15 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 			listener.OnEvent("peer_authenticated", peer.PublicKey, "")
 			continue
 		}
+		// Applying a hint is not a successful connection. Use the existing
+		// bounded recovery backoff until WireGuard reports authenticated progress.
+		ok = false
 		storeCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
 		records, err := store.Get(storeCtx, peerId.RemoteEndpointKey())
 		if err != nil || len(records) == 0 {
 			listener.OnLog("debug", "peer hint unavailable")
-			ok = false
-			continue
 		}
-		endpoints := []string{}
-		for _, record := range records {
-			if len(endpoints) == 4 {
-				break
-			}
-			data, err := discovery.Decode(record)
-			if err != nil {
-				continue
-			}
-			endpoint, err := discovery.SelectEndpoint(data, peer.Protocol, local)
-			if err == nil && discovery.Allowed(endpoint, nil) {
-				endpoints = append(endpoints, endpoint)
-			}
-		}
+		endpoints := recoveryCandidates(peer, records, local)
 		endpoint := selection.Next(endpoints)
 		if endpoint == "" {
 			ok = false
@@ -404,4 +392,33 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 		}
 	}
 	return ok
+}
+
+// The owner-reviewed bootstrap remains a candidate after roaming, including
+// when discovery is unavailable. Only that trusted config may name a private
+// LAN address; unsolicited DHT hints retain their public-address restriction.
+func recoveryCandidates(peer discoveryPeer, records []string, local *entity.DeviceStatus) []string {
+	endpoints := []string{}
+	seen := map[string]bool{}
+	add := func(endpoint string) {
+		if endpoint != "" && !seen[endpoint] && len(endpoints) < 4 {
+			endpoints = append(endpoints, endpoint)
+			seen[endpoint] = true
+		}
+	}
+	add(peer.Bootstrap)
+	for _, record := range records {
+		if len(endpoints) == 4 {
+			break
+		}
+		data, err := discovery.Decode(record)
+		if err != nil {
+			continue
+		}
+		endpoint, err := discovery.SelectEndpoint(data, peer.Protocol, local)
+		if err == nil && discovery.Allowed(endpoint, nil) {
+			add(endpoint)
+		}
+	}
+	return endpoints
 }

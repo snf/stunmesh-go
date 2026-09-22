@@ -8,11 +8,35 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"slices"
 	"strings"
 	"testing"
 
 	ctrl "github.com/tjjh89017/stunmesh-go/internal/discovery"
 )
+
+func TestRecoveryCandidatesKeepOnlyTrustedLANBootstrap(t *testing.T) {
+	peer := discoveryPeer{Bootstrap: "192.168.0.10:51824", Protocol: "ipv4"}
+	if got := recoveryCandidates(peer, nil, nil); !slices.Equal(got, []string{peer.Bootstrap}) {
+		t.Fatalf("discovery outage lost configured bootstrap: %v", got)
+	}
+	records := []string{"invalid JSON"}
+	for _, ep := range []string{"192.168.0.10:51824", "192.168.0.1:80", "100.64.0.1:1234", "1.2.3.4:51826", "1.2.3.4:51826", "1.2.3.5:51826", "1.2.3.6:51826", "1.2.3.7:51826"} {
+		raw, err := ctrl.Encode(ctrl.Record{IPv4: ep})
+		if err != nil {
+			t.Fatal(err)
+		}
+		records = append(records, raw)
+	}
+	want := []string{peer.Bootstrap, "1.2.3.4:51826", "1.2.3.5:51826", "1.2.3.6:51826"}
+	if got := recoveryCandidates(peer, records, nil); !slices.Equal(got, want) {
+		t.Fatalf("unexpected bounded recovery candidates: %v", got)
+	}
+	peer.Bootstrap = ""
+	if got := recoveryCandidates(peer, records[:4], nil); len(got) != 0 {
+		t.Fatalf("untrusted discovery supplied a private endpoint: %v", got)
+	}
+}
 
 // TestSelectEndpoint mirrors the four-protocol matrix covered by
 // internal/ctrl/establish_test.go's Execute_*Selection tests, since the
