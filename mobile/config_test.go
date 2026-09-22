@@ -190,7 +190,7 @@ func TestParseConfig_ExplicitValuesNotOverwrittenByDefaults(t *testing.T) {
 		"interface": {"private_key": "` + priv + `", "mtu": 1280},
 		"peers": [{"public_key": "` + pub + `"}],
 		"stun": {"addresses": ["stun.example.com:3478"]},
-		"refresh_interval_seconds": 30
+		"refresh_interval_seconds": 90
 	}`
 	cfg, err := parseConfig(json)
 	if err != nil {
@@ -202,8 +202,8 @@ func TestParseConfig_ExplicitValuesNotOverwrittenByDefaults(t *testing.T) {
 	if len(cfg.Stun.Addresses) != 1 || cfg.Stun.Addresses[0] != "stun.example.com:3478" {
 		t.Errorf("Stun.Addresses = %v, want explicit value preserved", cfg.Stun.Addresses)
 	}
-	if cfg.RefreshIntervalSeconds != 30 {
-		t.Errorf("RefreshIntervalSeconds = %d, want explicit 30", cfg.RefreshIntervalSeconds)
+	if cfg.RefreshIntervalSeconds != 90 {
+		t.Errorf("RefreshIntervalSeconds = %d, want explicit 90", cfg.RefreshIntervalSeconds)
 	}
 }
 

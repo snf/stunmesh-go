@@ -2,7 +2,7 @@ package entity
 
 import (
 	"errors"
-	"time"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 )
 
 var (
@@ -47,8 +47,4 @@ func (d *Device) FirewallMark() int {
 // DeviceStatus records the local host's last STUN discovery result for a
 // device, so EstablishController can tell which endpoint address families
 // the local host itself can actually reach.
-type DeviceStatus struct {
-	IPv4         string
-	IPv6         string
-	DiscoveredAt time.Time
-}
+type DeviceStatus = discovery.LocalStatus

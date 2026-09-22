@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
+	ctrl "github.com/tjjh89017/stunmesh-go/internal/discovery"
 )
 
 func resolverReturning(endpoint string, err error) ctrl.FamilyResolver {

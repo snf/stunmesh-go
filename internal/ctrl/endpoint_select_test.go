@@ -3,15 +3,15 @@ package ctrl_test
 import (
 	"testing"
 
-	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
+	ctrl "github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
 )
 
 func TestSelectEndpoint(t *testing.T) {
-	both := ctrl.EndpointData{IPv4: "1.2.3.4:51820", IPv6: "[2001:db8::1]:51820"}
-	ipv4Only := ctrl.EndpointData{IPv4: "1.2.3.4:51820"}
-	ipv6Only := ctrl.EndpointData{IPv6: "[2001:db8::1]:51820"}
-	empty := ctrl.EndpointData{}
+	both := ctrl.Record{IPv4: "1.2.3.4:51820", IPv6: "[2001:db8::1]:51820"}
+	ipv4Only := ctrl.Record{IPv4: "1.2.3.4:51820"}
+	ipv6Only := ctrl.Record{IPv6: "[2001:db8::1]:51820"}
+	empty := ctrl.Record{}
 
 	localBoth := &entity.DeviceStatus{IPv4: "9.9.9.9:1", IPv6: "[fe80::1]:1"}
 	localIPv4Only := &entity.DeviceStatus{IPv4: "9.9.9.9:1"}
@@ -20,7 +20,7 @@ func TestSelectEndpoint(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		data     ctrl.EndpointData
+		data     ctrl.Record
 		protocol string
 		local    *entity.DeviceStatus
 		want     string

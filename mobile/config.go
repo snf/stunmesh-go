@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/tjjh89017/stunmesh-go/internal/plugin/builtin/opendht"
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
 	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
 )
@@ -72,7 +73,7 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 	if err := validation.DecodeJSON([]byte(configJSON), &cfg); err != nil {
 		return nil, err
 	}
-	if cfg.Interface.PrivateKey == "" {
+	if cfg.Interface.PrivateKey == "" || cfg.Interface.PrivateKey == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" {
 		return nil, errors.New("interface.private_key is required")
 	}
 	if _, err := keyToHex(cfg.Interface.PrivateKey); err != nil {
@@ -81,8 +82,8 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 	if len(cfg.Peers) > validation.MaxPeers || len(cfg.Plugins) > validation.MaxStores || len(cfg.Stun.Addresses) > validation.MaxServers {
 		return nil, errors.New("too many peers, stores or STUN servers")
 	}
-	if cfg.RefreshIntervalSeconds < 1 || cfg.RefreshIntervalSeconds > 240 {
-		return nil, errors.New("refresh interval must be within 1–240 seconds")
+	if cfg.RefreshIntervalSeconds < 60 || cfg.RefreshIntervalSeconds > 240 {
+		return nil, errors.New("refresh interval must be within 60–240 seconds")
 	}
 	if cfg.Interface.MTU < 1280 || cfg.Interface.MTU > 1500 {
 		return nil, errors.New("MTU must be within 1280–1500")
@@ -112,6 +113,11 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 		if err := pluginapi.ValidateDefinition(pluginapi.PluginDefinition{Type: def.Type, Config: conf}); err != nil {
 			return nil, err
 		}
+		store, err := opendht.NewOpenDHTPlugin(conf)
+		if err != nil {
+			return nil, err
+		}
+		_ = store.(*opendht.OpenDHTPlugin).Close()
 	}
 	for i, p := range cfg.Peers {
 		if p.Plugin != "" && !stores[p.Plugin] {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/netip"
+	"time"
 
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
 )
@@ -71,4 +72,10 @@ func Allowed(endpoint string, localLAN []netip.Prefix) bool {
 		}
 	}
 	return false
+}
+
+// LocalStatus is local STUN capability, not remote peer authentication.
+type LocalStatus struct {
+	IPv4, IPv6   string
+	DiscoveredAt time.Time
 }

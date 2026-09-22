@@ -10,6 +10,7 @@ import (
 
 	"github.com/tjjh89017/stunmesh-go/internal/mobilebind"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/dialer"
+	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -37,7 +38,6 @@ type Node struct {
 
 	dev     *device.Device
 	bind    *mobilebind.Bind
-	tunDev  *swappableTun
 	ctrl    *controller
 	running bool
 }
@@ -73,7 +73,7 @@ func (n *Node) Start() error {
 	n.listener.OnStateChanged(StateStarting)
 
 	fail := func(err error) error {
-		n.listener.OnLog("error", err.Error())
+		n.listener.OnLog("error", "WireGuard start failed")
 		n.listener.OnStateChanged(StateDown)
 		return err
 	}
@@ -82,15 +82,27 @@ func (n *Node) Start() error {
 	if fd < 0 {
 		return fail(errors.New("tun fd not available"))
 	}
+	// Android VpnService creates IFF_TUN|IFF_NO_PI, without virtio offloads.
+	// Reject an unexpected descriptor before giving it to wireguard-go. This
+	// also excludes the audited pin's unused virtio GRO path on this adapter.
+	ifr, _ := unix.NewIfreq("")
+	if err := unix.IoctlIfreq(int(fd), unix.TUNGETIFF, ifr); err != nil || ifr.Uint16()&unix.IFF_VNET_HDR != 0 || ifr.Uint16()&unix.IFF_TUN == 0 || ifr.Uint16()&unix.IFF_NO_PI == 0 {
+		_ = unix.Close(int(fd))
+		return fail(errors.New("unsupported platform TUN descriptor"))
+	}
 	rawTun, _, err := tun.CreateUnmonitoredTUNFromFD(int(fd))
 	if err != nil {
 		return fail(fmt.Errorf("create tun from fd: %w", err))
 	}
-	tunDev := newSwappableTun(rawTun)
 
 	bind := mobilebind.New(protectorAdapter{n.protector})
-	logger := device.NewLogger(logLevel(n.cfg.Log.Level), fmt.Sprintf("(%s) ", n.cfg.Name))
-	dev := device.NewDevice(tunDev, bind, logger)
+	// Raw WG error formatting can contain configuration values. The public
+	// diagnostics receive only a fixed category, never backend message text.
+	logger := &device.Logger{Verbosef: device.DiscardLogf, Errorf: device.DiscardLogf}
+	if n.cfg.Log.Level != "silent" && n.cfg.Log.Level != "disabled" {
+		logger.Errorf = func(string, ...any) { n.listener.OnLog("error", "WireGuard operation failed") }
+	}
+	dev := device.NewDevice(rawTun, bind, logger)
 
 	uapi, err := buildUAPI(n.cfg)
 	if err != nil {
@@ -101,7 +113,12 @@ func (n *Node) Start() error {
 		dev.Close()
 		return fail(fmt.Errorf("ipc set: %w", err))
 	}
-	if err := dev.Up(); err != nil {
+	if err := func() error {
+		if n.network.online {
+			return dev.Up()
+		}
+		return nil
+	}(); err != nil {
 		dev.Close()
 		return fail(fmt.Errorf("device up: %w", err))
 	}
@@ -117,7 +134,6 @@ func (n *Node) Start() error {
 
 	n.dev = dev
 	n.bind = bind
-	n.tunDev = tunDev
 	n.ctrl = ctrl
 	n.running = true
 	n.listener.OnLog("info", "wireguard device up")
@@ -154,7 +170,6 @@ func (n *Node) Stop() {
 	}
 	n.dev = nil
 	n.bind = nil
-	n.tunDev = nil
 	n.running = false
 	n.mu.Unlock()
 	n.listener.OnStateChanged(StateDown)
@@ -194,23 +209,6 @@ func (n *Node) pluginDNSServers() []string {
 		return n.dnsServers
 	}
 	return defaultPluginDNSServers
-}
-
-// RenewTun swaps in a fresh tun fd after a platform network change without
-// restarting the WG device.
-func (n *Node) RenewTun(fd int32) error {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	if !n.running {
-		return errors.New("node not running")
-	}
-	newTun, _, err := tun.CreateUnmonitoredTUNFromFD(int(fd))
-	if err != nil {
-		return fmt.Errorf("create tun from fd: %w", err)
-	}
-	n.tunDev.swap(newTun)
-	n.listener.OnLog("info", "tun fd renewed")
-	return nil
 }
 
 // SetPeerEndpoint applies a discovered endpoint to one peer at run time.

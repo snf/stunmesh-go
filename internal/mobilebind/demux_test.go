@@ -93,3 +93,34 @@ func TestTxnRegistryDispatch(t *testing.T) {
 		t.Error("dispatch succeeded for unknown txn")
 	}
 }
+
+func TestInvalidRepliesDoNotConsumeTransaction(t *testing.T) {
+	r := NewTxnRegistry()
+	id := TxnID{2, 3, 4}
+	server := netip.MustParseAddrPort("192.0.2.1:3478")
+	replies := r.Register(id, server)
+	defer r.Unregister(id)
+	good := stunPacket(t, stunBindingSuccess, id, xorMappedV4(t, netip.MustParseAddrPort("198.51.100.1:99")))
+	invalid := [][]byte{stunPacket(t, stunBindingRequest, id, nil), stunPacket(t, stunBindingSuccess, id, nil), append(append([]byte(nil), good...), 0), stunPacket(t, stunBindingSuccess, TxnID{9}, xorMappedV4(t, netip.MustParseAddrPort("198.51.100.1:99")))}
+	if r.Dispatch(good, netip.MustParseAddrPort("192.0.2.2:3478")) {
+		t.Fatal("unrelated source accepted")
+	}
+	for _, packet := range invalid {
+		if r.Dispatch(packet, server) {
+			t.Fatal("malformed or unrelated packet accepted")
+		}
+	}
+	select {
+	case <-replies:
+		t.Fatal("invalid response consumed waiter")
+	default:
+	}
+	if !r.Dispatch(good, server) {
+		t.Fatal("valid response after invalid packets lost")
+	}
+	select {
+	case <-replies:
+	default:
+		t.Fatal("valid response was not delivered")
+	}
+}

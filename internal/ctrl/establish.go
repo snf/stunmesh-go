@@ -100,7 +100,7 @@ func (c *EstablishController) Execute(ctx context.Context, peerId entity.PeerId)
 		if err != nil {
 			continue
 		}
-		endpoint, err := SelectEndpoint(data, peer.Protocol(), local)
+		endpoint, err := discovery.SelectEndpoint(data, peer.Protocol(), local)
 		if err == nil && discovery.Allowed(endpoint, nil) {
 			endpoints = append(endpoints, endpoint)
 		}
