@@ -1,0 +1,23 @@
+refresh_interval: 180s
+interfaces:
+  wg0:
+    protocol: ipv4
+    proxy: {listen: 51830}
+    peers:
+      nas:
+        public_key: REPLACE_WITH_NAS_PUBLIC_KEY
+        plugin: dht
+        protocol: ipv4
+plugins:
+  dht:
+    type: builtin
+    name: opendht
+    endpoints:
+      - https://dhtproxy3.jami.net
+      - https://dhtproxy2.jami.net
+    timeout: 10s
+stun:
+  addresses:
+    - stun.cloudflare.com:3478
+    - stun.l.google.com:19302
+log: {level: info, format: json}

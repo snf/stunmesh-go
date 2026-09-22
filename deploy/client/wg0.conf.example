@@ -1,0 +1,13 @@
+# Private file: mode 0600 in a mode-0700 directory outside this repository.
+# These are placeholders, not usable keys. Generate a distinct laptop identity.
+[Interface]
+PrivateKey = REPLACE_WITH_LOCALLY_GENERATED_LAPTOP_PRIVATE_KEY
+ListenPort = 51828
+
+[Peer]
+PublicKey = REPLACE_WITH_NAS_PUBLIC_KEY
+PresharedKey = REPLACE_WITH_THIS_LAPTOPS_UNIQUE_PSK
+AllowedIPs = 10.77.0.1/32
+# Optional reviewed home-LAN bootstrap; discovery supplies the external endpoint.
+Endpoint = 192.168.0.10:51824
+PersistentKeepalive = 25
