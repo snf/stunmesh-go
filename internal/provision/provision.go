@@ -1,5 +1,6 @@
-// Package provision validates public enrollment paperwork. It never generates,
-// receives or exports a phone private key or PSK, and never authorizes a peer.
+// Package provision validates enrollment paperwork. A proposal may carry a PSK
+// and is then confidential. Phone private keys are never accepted or generated;
+// replies remain public and never authorize a peer by themselves.
 package provision
 
 import (
@@ -15,7 +16,7 @@ import (
 	"github.com/tjjh89017/stunmesh-go/pluginapi"
 )
 
-const Schema = "stunmesh-enroll-v1"
+const Schema = "stunmesh-enroll-v2"
 const MaxBytes = 2048 // Fits a practical single QR; ordinary profile import is larger.
 var uuid = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 
@@ -30,8 +31,13 @@ type Proposal struct {
 	OpenDHT         []string `json:"opendht"`
 	Endpoint        string   `json:"endpoint,omitempty"`
 	Protocol        string   `json:"protocol"`
-	PSKRequired     bool     `json:"psk_required"`
+	PresharedKey    string   `json:"preshared_key,omitempty"`
 }
+
+// Ordinary formatting must not disclose the optional shared credential.
+func (p Proposal) String() string   { return "EnrollmentProposal{credentials redacted}" }
+func (p Proposal) GoString() string { return p.String() }
+
 type Reply struct {
 	Schema    string   `json:"schema"`
 	ID        string   `json:"proposal_id"`
@@ -49,12 +55,17 @@ func NewID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 func (p Proposal) Validate() error {
-	bad := errors.New("invalid public enrollment; check schema, keys, address, narrow routes and origins")
+	bad := errors.New("invalid enrollment; check schema, keys, address, narrow routes and origins")
 	if p.Schema != Schema || !uuid.MatchString(p.ID) || len(p.Name) < 1 || len(p.Name) > 128 || strings.ContainsAny(p.Name, "\r\n\t") {
 		return bad
 	}
 	if _, err := validation.PublicKey(p.ServerPublicKey); err != nil {
 		return bad
+	}
+	if p.PresharedKey != "" {
+		if key, err := validation.Key(p.PresharedKey); err != nil || key == [32]byte{} {
+			return bad
+		}
 	}
 	a, err := validation.Prefix(p.Address)
 	if err != nil || a.Bits() != a.Addr().BitLen() {
@@ -100,17 +111,29 @@ func (p Proposal) Encode() ([]byte, error) {
 	}
 	b, err := json.Marshal(p)
 	if len(b) > MaxBytes {
-		return nil, errors.New("public proposal exceeds QR limit")
+		return nil, errors.New("enrollment exceeds QR limit")
 	}
 	return b, err
 }
 func Decode(b []byte) (Proposal, error) {
 	var p Proposal
 	if len(b) > MaxBytes {
-		return p, errors.New("public proposal too large")
+		return p, errors.New("enrollment too large")
 	}
 	if err := validation.DecodeJSON(b, &p); err != nil {
 		return p, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(b, &fields); err != nil {
+		return p, errors.New("invalid enrollment")
+	}
+	for name := range fields {
+		if name != strings.ToLower(name) {
+			return p, errors.New("invalid enrollment field")
+		}
+	}
+	if _, present := fields["preshared_key"]; present && p.PresharedKey == "" {
+		return p, errors.New("empty enrollment PSK")
 	}
 	return p, p.Validate()
 }
