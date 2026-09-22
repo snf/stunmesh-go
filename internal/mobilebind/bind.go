@@ -116,7 +116,7 @@ func (b *Bind) receiveFunc(conn *net.UDPConn) wgconn.ReceiveFunc {
 			pkt := bufs[0][:n]
 			if IsSTUN(pkt) {
 				// Demuxed out of the WG path; unknown transactions drop.
-				b.registry.Dispatch(pkt)
+				b.registry.Dispatch(pkt, addr)
 				continue
 			}
 			sizes[0] = n

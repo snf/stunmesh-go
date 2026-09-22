@@ -15,8 +15,8 @@ interfaces:
 plugins:
   test_plugin:
     type: builtin
-    name: test
-    key: value
+    name: opendht
+    endpoint: https://example.invalid
 
 refresh_interval: 3m
 

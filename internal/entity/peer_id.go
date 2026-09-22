@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 )
 
 const PeerKeyLength = 32
@@ -31,7 +32,7 @@ func (p *PeerId) EndpointKey() string {
 	copy(src, p.devicePublicKey[:])
 	copy(dest, p.peerPublicKey[:])
 
-	sum := sha1.Sum(append(src, dest...))
+	sum := sha1.Sum(append([]byte(discovery.Namespace+"\x00"), append(src, dest...)...))
 	return hex.EncodeToString(sum[:])
 }
 
@@ -40,7 +41,7 @@ func (p *PeerId) RemoteEndpointKey() string {
 	copy(src, p.peerPublicKey[:])
 	copy(dest, p.devicePublicKey[:])
 
-	sum := sha1.Sum(append(src, dest...))
+	sum := sha1.Sum(append([]byte(discovery.Namespace+"\x00"), append(src, dest...)...))
 	return hex.EncodeToString(sum[:])
 }
 

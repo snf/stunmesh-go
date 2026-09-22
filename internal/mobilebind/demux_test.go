@@ -4,6 +4,7 @@ package mobilebind
 
 import (
 	"encoding/binary"
+	"net/netip"
 	"testing"
 )
 
@@ -58,10 +59,10 @@ func TestIsSTUN(t *testing.T) {
 func TestTxnRegistryDispatch(t *testing.T) {
 	r := NewTxnRegistry()
 	txn := TxnID{9, 9, 9}
-	ch := r.Register(txn)
+	ch := r.Register(txn, netip.MustParseAddrPort("192.0.2.1:3478"))
 
-	pkt := stunPacket(t, stunBindingSuccess, txn, nil)
-	if !r.Dispatch(pkt) {
+	pkt := stunPacket(t, stunBindingSuccess, txn, xorMappedV4(t, netip.MustParseAddrPort("198.51.100.1:99")))
+	if !r.Dispatch(pkt, netip.MustParseAddrPort("192.0.2.1:3478")) {
 		t.Fatal("dispatch to registered txn failed")
 	}
 	select {
@@ -74,8 +75,8 @@ func TestTxnRegistryDispatch(t *testing.T) {
 	}
 
 	// The dispatched packet must be a copy.
-	pkt2 := stunPacket(t, stunBindingSuccess, txn, nil)
-	r.Dispatch(pkt2)
+	pkt2 := stunPacket(t, stunBindingSuccess, txn, xorMappedV4(t, netip.MustParseAddrPort("198.51.100.1:99")))
+	r.Dispatch(pkt2, netip.MustParseAddrPort("192.0.2.1:3478"))
 	pkt2[0] = 0xFF
 	got := <-ch
 	if got[0] == 0xFF {
@@ -83,12 +84,12 @@ func TestTxnRegistryDispatch(t *testing.T) {
 	}
 
 	r.Unregister(txn)
-	if r.Dispatch(stunPacket(t, stunBindingSuccess, txn, nil)) {
+	if r.Dispatch(stunPacket(t, stunBindingSuccess, txn, xorMappedV4(t, netip.MustParseAddrPort("198.51.100.1:99"))), netip.MustParseAddrPort("192.0.2.1:3478")) {
 		t.Error("dispatch succeeded after unregister")
 	}
 
 	other := TxnID{1}
-	if r.Dispatch(stunPacket(t, stunBindingSuccess, other, nil)) {
+	if r.Dispatch(stunPacket(t, stunBindingSuccess, other, nil), netip.MustParseAddrPort("192.0.2.1:3478")) {
 		t.Error("dispatch succeeded for unknown txn")
 	}
 }

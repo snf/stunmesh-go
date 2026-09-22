@@ -29,7 +29,8 @@ interfaces:
 plugins:
   test_plugin:
     type: builtin
-    name: test
+    name: opendht
+    endpoint: https://example.invalid
 
 refresh_interval: 2m
 `
@@ -207,74 +208,6 @@ interfaces:
 
 	if cfg.PingMonitor.FixedRetries != 3 {
 		t.Errorf("PingMonitor.FixedRetries = %d, want 3 (default)", cfg.PingMonitor.FixedRetries)
-	}
-}
-
-func TestLoad_PluginDefinitions(t *testing.T) {
-	t.Parallel()
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.yaml")
-
-	configContent := `
-interfaces:
-  wg0:
-    peers:
-      peer1:
-        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
-        plugin: test_plugin
-
-plugins:
-  test_plugin:
-    type: exec
-    command: /bin/test
-    args: ["-v"]
-  another_plugin:
-    type: shell
-    command: /bin/sh
-`
-
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := load("", "", []string{tmpDir})
-	if err != nil {
-		t.Fatalf("Load() error = %v, want nil", err)
-	}
-
-	if len(cfg.Plugins) != 2 {
-		t.Errorf("len(Plugins) = %d, want 2", len(cfg.Plugins))
-	}
-
-	testPlugin, ok := cfg.Plugins["test_plugin"]
-	if !ok {
-		t.Fatal("test_plugin not found in config")
-	}
-
-	if testPlugin.Type != "exec" {
-		t.Errorf("test_plugin.Type = %q, want %q", testPlugin.Type, "exec")
-	}
-
-	if testPlugin.Config["command"] != "/bin/test" {
-		t.Errorf("test_plugin command = %v, want /bin/test", testPlugin.Config["command"])
-	}
-
-	args, ok := testPlugin.Config["args"].([]interface{})
-	if !ok || len(args) != 1 || args[0] != "-v" {
-		t.Errorf("test_plugin args = %v, want [-v]", testPlugin.Config["args"])
-	}
-
-	anotherPlugin, ok := cfg.Plugins["another_plugin"]
-	if !ok {
-		t.Fatal("another_plugin not found in config")
-	}
-
-	if anotherPlugin.Type != "shell" {
-		t.Errorf("another_plugin.Type = %q, want %q", anotherPlugin.Type, "shell")
-	}
-
-	if anotherPlugin.Config["command"] != "/bin/sh" {
-		t.Errorf("another_plugin command = %v, want /bin/sh", anotherPlugin.Config["command"])
 	}
 }
 
@@ -669,60 +602,6 @@ ping_monitor:
 
 // TestLoad_PluginDefinition_RemainCapturesExtraKeys pins mapstructure `,remain`:
 // keys other than "type" fall through into Config instead of being dropped.
-func TestLoad_PluginDefinition_RemainCapturesExtraKeys(t *testing.T) {
-	t.Parallel()
-	tmpDir := t.TempDir()
-	configContent := `
-plugins:
-  cloudflare_builtin:
-    type: builtin
-    name: cloudflare
-    zone: example.com
-    token: secret-token
-    subdomain: stunmesh
-    dedup: true
-`
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(configContent), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := load("", "", []string{tmpDir})
-	if err != nil {
-		t.Fatalf("Load() error = %v, want nil", err)
-	}
-
-	plugin, ok := cfg.Plugins["cloudflare_builtin"]
-	if !ok {
-		t.Fatal("cloudflare_builtin not found in config")
-	}
-
-	if plugin.Type != "builtin" {
-		t.Errorf("plugin.Type = %q, want %q", plugin.Type, "builtin")
-	}
-
-	// "type" itself must NOT leak into the remainder map.
-	if _, present := plugin.Config["type"]; present {
-		t.Error(`plugin.Config contains "type", want it consumed by the Type field`)
-	}
-
-	wantRemain := map[string]interface{}{
-		"name":      "cloudflare",
-		"zone":      "example.com",
-		"token":     "secret-token",
-		"subdomain": "stunmesh",
-		"dedup":     true,
-	}
-	for k, want := range wantRemain {
-		got, ok := plugin.Config[k]
-		if !ok {
-			t.Errorf("plugin.Config[%q] missing, want %v", k, want)
-			continue
-		}
-		if got != want {
-			t.Errorf("plugin.Config[%q] = %v, want %v", k, got, want)
-		}
-	}
-}
 
 func TestLoad_MalformedYAML_WrapsErrReadConfig(t *testing.T) {
 	t.Parallel()

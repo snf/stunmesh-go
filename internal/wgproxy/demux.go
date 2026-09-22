@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/rs/zerolog"
+	"github.com/tjjh89017/stunmesh-go/internal/stunwire"
 )
 
 // PeerKey is a WireGuard peer public key, aliased to interoperate with wg.Key
@@ -106,6 +107,9 @@ func (r *TxnRegistry) route(src netip.AddrPort, b []byte) bool {
 	if !ok || txn.server != normalize(src) {
 		return false
 	}
+	if _, err := stunwire.ParseResponse(b, id); err != nil {
+		return false
+	}
 	// Copy: the caller reuses its receive buffer for the next datagram.
 	packet := make([]byte, len(b))
 	copy(packet, b)
@@ -147,15 +151,19 @@ func (d *Demux) Registry() *TxnRegistry {
 }
 
 // Program maps a peer's outer source address, replacing any previous mapping.
-func (d *Demux) Program(peer PeerKey, remote netip.AddrPort) {
+func (d *Demux) Program(peer PeerKey, remote netip.AddrPort) error {
 	remote = normalize(remote)
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if old, ok := d.srcByPeer[peer]; ok {
+	if owner, ok := d.peerBySrc[remote]; ok && owner != peer {
+		return errors.New("endpoint already belongs to another peer")
+	}
+	if old, ok := d.srcByPeer[peer]; ok && d.peerBySrc[old] == peer {
 		delete(d.peerBySrc, old)
 	}
 	d.srcByPeer[peer] = remote
 	d.peerBySrc[remote] = peer
+	return nil
 }
 
 // Unprogram removes a peer's mapping; safe for an unknown peer.
@@ -163,7 +171,9 @@ func (d *Demux) Unprogram(peer PeerKey) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if old, ok := d.srcByPeer[peer]; ok {
-		delete(d.peerBySrc, old)
+		if d.peerBySrc[old] == peer {
+			delete(d.peerBySrc, old)
+		}
 		delete(d.srcByPeer, peer)
 	}
 }

@@ -4,14 +4,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/google/wire"
 	"github.com/rs/zerolog"
 	"github.com/tjjh89017/stunmesh-go/internal/config"
 )
 
-var DefaultSet = wire.NewSet(
-	NewLogger,
-)
+
 
 func NewLogger(cfg *config.Config) *zerolog.Logger {
 	// zerolog writes JSON natively; ConsoleWriter reformats it for humans.

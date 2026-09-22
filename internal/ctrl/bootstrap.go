@@ -63,7 +63,6 @@ func (ctrl *BootstrapController) registerDevice(ctx context.Context, deviceName 
 	deviceEntity := entity.NewDevice(
 		entity.DeviceId(device.Name),
 		device.ListenPort,
-		device.PrivateKey[:],
 		protocol,
 		device.FirewallMark,
 	)

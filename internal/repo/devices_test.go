@@ -12,7 +12,7 @@ import (
 
 func Test_DeviceFind(t *testing.T) {
 	deviceName := entity.DeviceId("wg0")
-	device := entity.NewDevice(deviceName, 6379, []byte{}, "ipv4", 0)
+	device := entity.NewDevice(deviceName, 6379, "ipv4", 0)
 
 	devices := repo.NewDevices()
 	devices.Save(context.TODO(), device)
@@ -59,15 +59,15 @@ func Test_DeviceList(t *testing.T) {
 		{
 			name: "single device",
 			devices: []*entity.Device{
-				entity.NewDevice(entity.DeviceId("wg0"), 6379, []byte{}, "ipv4", 0),
+				entity.NewDevice(entity.DeviceId("wg0"), 6379, "ipv4", 0),
 			},
 		},
 		{
 			name: "multiple devices",
 			devices: []*entity.Device{
-				entity.NewDevice(entity.DeviceId("wg0"), 6379, []byte{}, "ipv4", 0),
-				entity.NewDevice(entity.DeviceId("wg1"), 6380, []byte{}, "ipv4", 0),
-				entity.NewDevice(entity.DeviceId("wg2"), 6381, []byte{}, "ipv4", 0),
+				entity.NewDevice(entity.DeviceId("wg0"), 6379, "ipv4", 0),
+				entity.NewDevice(entity.DeviceId("wg1"), 6380, "ipv4", 0),
+				entity.NewDevice(entity.DeviceId("wg2"), 6381, "ipv4", 0),
 			},
 		},
 	}
@@ -155,7 +155,7 @@ func Test_DeviceRepository_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 
 			name := entity.DeviceId(fmt.Sprintf("wg%d", i))
-			device := entity.NewDevice(name, 6379+i, []byte{}, "ipv4", 0)
+			device := entity.NewDevice(name, 6379+i, "ipv4", 0)
 			devices.Save(context.TODO(), device)
 		}(i)
 

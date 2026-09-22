@@ -6,13 +6,12 @@ package stun
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/netip"
 	"sync"
 
-	stun "github.com/pion/stun/v3"
 	"github.com/rs/zerolog"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/dialer"
+	"github.com/tjjh89017/stunmesh-go/internal/stunwire"
 )
 
 // ErrTxnIDMismatch means the response echoed a different transaction ID.
@@ -86,44 +85,28 @@ func (c *ProxyBacked) Connect(ctx context.Context, stunAddr string) (string, int
 		return "", 0, err
 	}
 
-	req, err := stun.Build(stun.TransactionID, stun.BindingRequest)
+	req, txn, err := stunwire.BuildRequest()
 	if err != nil {
 		return "", 0, err
 	}
 
-	raw, err := c.transport.Exchange(ctx, server, req.TransactionID, req.Raw)
+	raw, err := c.transport.Exchange(ctx, server, txn, req)
 	if err != nil {
 		return "", 0, err
 	}
 
-	return parseBindingResponse(ctx, raw, req.TransactionID)
+	return parseBindingResponse(ctx, raw, txn)
 }
 
 // parseBindingResponse validates the response against the request's
 // transaction ID and extracts the mapped endpoint or error code.
 func parseBindingResponse(ctx context.Context, raw []byte, txnID [12]byte) (string, int, error) {
-	msg := &stun.Message{Raw: raw}
-	if err := msg.Decode(); err != nil {
-		return "", 0, err
-	}
-	if msg.TransactionID != txnID {
+	if stunwire.IsSTUN(raw) && stunwire.TxnIDOf(raw) != txnID {
 		return "", 0, ErrTxnIDMismatch
 	}
-
-	switch msg.Type {
-	case stun.BindingSuccess:
-		xorAddr := Parse(ctx, msg)
-		if xorAddr == nil {
-			return "", 0, ErrNoMappedAddress
-		}
-		return xorAddr.IP.String(), xorAddr.Port, nil
-	case stun.BindingError:
-		var code stun.ErrorCodeAttribute
-		if err := code.GetFrom(msg); err != nil {
-			return "", 0, errors.New("stun: binding error response without ERROR-CODE")
-		}
-		return "", 0, fmt.Errorf("stun: binding error response: %d %s", code.Code, code.Reason)
-	default:
-		return "", 0, fmt.Errorf("stun: unexpected response type %s", msg.Type)
+	ep, err := stunwire.ParseResponse(raw, txnID)
+	if err != nil {
+		return "", 0, err
 	}
+	return ep.Addr().String(), int(ep.Port()), nil
 }

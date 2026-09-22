@@ -9,7 +9,6 @@ type Key = [32]byte
 type DeviceInfo struct {
 	Name       string
 	ListenPort int
-	PrivateKey Key
 	PublicKey  Key
 	PeerKeys   []Key
 	// Zero means unset. int, not uint32, to match wgctrl's own type.

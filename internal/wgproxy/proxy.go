@@ -199,17 +199,22 @@ func (p *Proxy) AddPeer(key PeerKey) (netip.AddrPort, error) {
 
 // SetPeerEndpoint programs the peer's inbound demux mapping and outbound
 // remote — the only way forwarding state changes.
-func (p *Proxy) SetPeerEndpoint(key PeerKey, remote netip.AddrPort) {
+func (p *Proxy) SetPeerEndpoint(key PeerKey, remote netip.AddrPort) error {
 	remote = normalize(remote)
-	p.demux.Program(key, remote)
-	p.mu.RLock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	ps := p.peers[key]
-	p.mu.RUnlock()
 	if ps == nil {
-		p.logger.Warn().Str("remote", remote.String()).Msg("SetPeerEndpoint for unknown peer; call AddPeer first")
-		return
+		return errors.New("unknown proxy peer")
+	}
+	if !remote.IsValid() || remote.Port() == 0 {
+		return errors.New("invalid proxy endpoint")
+	}
+	if err := p.demux.Program(key, remote); err != nil {
+		return err
 	}
 	ps.remote.Store(&remote)
+	return nil
 }
 
 // OuterPort reports the family's outer-socket port (0 when not enabled); it

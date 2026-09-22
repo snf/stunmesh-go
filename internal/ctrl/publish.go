@@ -4,7 +4,7 @@ package ctrl
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"net"
 	"strconv"
 	"time"
@@ -29,31 +29,23 @@ type PublishController struct {
 	peers         PeerRepository
 	pluginManager PluginProvider
 	resolver      StunResolver
-	encryptor     EndpointEncryptor
 	deviceConfig  DeviceConfigProvider
 	logger        zerolog.Logger
 	triggerQueue  *queue.Queue[struct{}]      // Trigger queue for full publish
 	peerQueue     *queue.Queue[entity.PeerId] // Trigger queue for specific peer
 
-	// lastPublished remembers the plaintext endpoint JSON last successfully
-	// published for each peer, keyed by peer.LocalId(). It is only read and
-	// written from Execute/ExecuteForPeer, both of which are driven
-	// sequentially from the single Run() goroutine, so no mutex is needed.
-	lastPublished map[string]string
 }
 
-func NewPublishController(devices DeviceRepository, peers PeerRepository, pluginManager PluginProvider, resolver StunResolver, encryptor EndpointEncryptor, deviceConfig DeviceConfigProvider, logger *zerolog.Logger) *PublishController {
+func NewPublishController(devices DeviceRepository, peers PeerRepository, pluginManager PluginProvider, resolver StunResolver, deviceConfig DeviceConfigProvider, logger *zerolog.Logger) *PublishController {
 	return &PublishController{
 		devices:       devices,
 		peers:         peers,
 		pluginManager: pluginManager,
 		resolver:      resolver,
-		encryptor:     encryptor,
 		deviceConfig:  deviceConfig,
 		logger:        logger.With().Str("controller", "publish").Logger(),
 		triggerQueue:  queue.NewBuffered[struct{}](queue.TriggerQueueSize),   // Buffered trigger queue
 		peerQueue:     queue.NewBuffered[entity.PeerId](queue.PeerQueueSize), // Buffered peer queue
-		lastPublished: make(map[string]string),
 	}
 }
 
@@ -98,12 +90,8 @@ func (c *PublishController) discoverEndpoints(ctx context.Context, device *entit
 	return ipv4Endpoint, ipv6Endpoint, nil
 }
 
-// publishToPeer builds the endpoint JSON, applies dedup, encrypts and
-// stores it for a single peer, and records it in lastPublished on success.
-// storeCtx is the context used for the store.Set call (after applying the
-// dialer escape); ctx is used unchanged for encryption. Both Execute and
-// ExecuteForPeer pass the same cancellable context, with the peer-scoped
-// logger attached to storeCtx.
+// publishToPeer refreshes a public address hint on every cycle. Unchanged
+// records still need renewal before the store TTL expires.
 func (c *PublishController) publishToPeer(ctx, storeCtx context.Context, device *entity.Device, peer *entity.Peer, ipv4Endpoint, ipv6Endpoint string, logger zerolog.Logger) error {
 	// Build endpoint data in plain JSON
 	endpointData := EndpointData{
@@ -111,28 +99,8 @@ func (c *PublishController) publishToPeer(ctx, storeCtx context.Context, device 
 		IPv6: ipv6Endpoint,
 	}
 
-	jsonPlain, err := json.Marshal(endpointData)
+	data, err := discovery.Encode(endpointData)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to marshal endpoint data")
-		return err
-	}
-
-	// Skip publishing if the plaintext endpoint hasn't changed since
-	// the last successful publish for this peer, and the peer's
-	// plugin instance has dedup enabled.
-	if c.pluginManager.IsDedup(peer.Plugin()) && c.lastPublished[peer.LocalId()] == string(jsonPlain) {
-		logger.Debug().Msg("endpoint unchanged, skip publish")
-		return nil
-	}
-
-	// Encrypt entire JSON content
-	res, err := c.encryptor.Encrypt(ctx, &EndpointEncryptRequest{
-		PeerPublicKey: peer.PublicKey(),
-		PrivateKey:    device.PrivateKey(),
-		Content:       string(jsonPlain),
-	})
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to encrypt endpoint")
 		return err
 	}
 
@@ -143,13 +111,12 @@ func (c *PublishController) publishToPeer(ctx, storeCtx context.Context, device 
 	}
 
 	logger.Info().Str("plugin", peer.Plugin()).Msg("store endpoint")
-	err = store.Set(dialer.WithEscape(storeCtx, escapeFor(c.deviceConfig, device)), peer.LocalId(), res.Data)
+	err = store.Set(dialer.WithEscape(storeCtx, escapeFor(c.deviceConfig, device)), peer.LocalId(), data)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to store endpoint")
 		return err
 	}
 
-	c.lastPublished[peer.LocalId()] = string(jsonPlain)
 	return nil
 }
 

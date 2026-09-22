@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"runtime"
 	"testing"
 )
 
@@ -253,9 +252,9 @@ func TestProxy_IsEnabled_Absent(t *testing.T) {
 		want bool
 	}{
 		{"windows", true},
-		{"linux", false},
-		{"darwin", false},
-		{"freebsd", false},
+		{"linux", true},
+		{"darwin", true},
+		{"freebsd", true},
 	}
 
 	for _, tt := range tests {
@@ -300,7 +299,7 @@ func TestProxy_IsEnabled_Explicit(t *testing.T) {
 func TestProxy_IsEnabled_ListenAloneDoesNotEnable(t *testing.T) {
 	t.Parallel()
 	p := Proxy{Listen: 51999}
-	if got := p.IsEnabled("linux"); got != false {
+	if got := p.IsEnabled("linux"); got != true {
 		t.Errorf("IsEnabled(linux) = %v, want false (listen alone must not enable proxy)", got)
 	}
 }
@@ -331,7 +330,7 @@ interfaces:
     peers: {}
 `
 
-			if !tt.want && runtime.GOOS == "windows" {
+			if !tt.want {
 				paths := writeWeakTypingConfig(t, yaml)
 
 				if _, err := load("", "", paths); err == nil {
@@ -384,7 +383,7 @@ interfaces:
 	if got := dc.GetProxyEnabled("does-not-exist", "windows"); got != true {
 		t.Errorf("GetProxyEnabled(unknown, windows) = %v, want true (platform default)", got)
 	}
-	if got := dc.GetProxyEnabled("does-not-exist", "linux"); got != false {
+	if got := dc.GetProxyEnabled("does-not-exist", "linux"); got != true {
 		t.Errorf("GetProxyEnabled(unknown, linux) = %v, want false (platform default)", got)
 	}
 }
@@ -403,7 +402,7 @@ func TestValidateConfig_ProxyEnabled_WindowsFalseIsError(t *testing.T) {
 		{"windows explicit false errors", "windows", &falseVal, true},
 		{"windows explicit true ok", "windows", &trueVal, false},
 		{"windows absent ok", "windows", nil, false},
-		{"linux explicit false ok", "linux", &falseVal, false},
+		{"linux explicit false rejected", "linux", &falseVal, true},
 		{"linux explicit true ok", "linux", &trueVal, false},
 		{"linux absent ok", "linux", nil, false},
 	}

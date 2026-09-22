@@ -12,6 +12,7 @@ import (
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/dialer"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // defaultPluginDNSServers backs plugin hostname lookups until the app calls
@@ -25,6 +26,8 @@ var defaultPluginDNSServers = []string{"8.8.8.8:53", "1.1.1.1:53", "[2001:4860:4
 // a demuxing bind, plus (later) the STUNMESH controllers for discovery,
 // publish and establish.
 type Node struct {
+	lifecycle  sync.Mutex
+	network    underlayState
 	mu         sync.Mutex
 	cfg        *tunnelConfig
 	tunP       TunProvider
@@ -60,6 +63,8 @@ func NewNode(configJSON string, tunProvider TunProvider, protector SocketProtect
 // Start brings up the data plane: tun fd from the platform, wireguard-go
 // device on the demuxing bind, config over UAPI, device up.
 func (n *Node) Start() error {
+	n.lifecycle.Lock()
+	defer n.lifecycle.Unlock()
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	if n.running {
@@ -101,7 +106,10 @@ func (n *Node) Start() error {
 		return fail(fmt.Errorf("device up: %w", err))
 	}
 
-	ctrl, err := newController(n, bind)
+	private, _ := keyToBytes(n.cfg.Interface.PrivateKey)
+	public := wgtypes.Key(private).PublicKey()
+	clear(private[:])
+	ctrl, err := newController(n, bind, [32]byte(public))
 	if err != nil {
 		dev.Close()
 		return fail(fmt.Errorf("controller: %w", err))
@@ -121,6 +129,8 @@ func (n *Node) Start() error {
 
 // Stop tears down the controller, device and sockets. Idempotent.
 func (n *Node) Stop() {
+	n.lifecycle.Lock()
+	defer n.lifecycle.Unlock()
 	// The controller must stop outside the node mutex: a running cycle may
 	// be blocked in SetPeerEndpoint waiting for it.
 	n.mu.Lock()
@@ -129,6 +139,7 @@ func (n *Node) Stop() {
 		return
 	}
 	ctrl := n.ctrl
+	n.running = false
 	n.ctrl = nil
 	n.mu.Unlock()
 

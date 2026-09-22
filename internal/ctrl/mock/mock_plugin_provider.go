@@ -54,17 +54,3 @@ func (mr *MockPluginProviderMockRecorder) GetPlugin(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlugin", reflect.TypeOf((*MockPluginProvider)(nil).GetPlugin), name)
 }
-
-// IsDedup mocks base method.
-func (m *MockPluginProvider) IsDedup(name string) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsDedup", name)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// IsDedup indicates an expected call of IsDedup.
-func (mr *MockPluginProviderMockRecorder) IsDedup(name any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDedup", reflect.TypeOf((*MockPluginProvider)(nil).IsDedup), name)
-}
