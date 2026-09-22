@@ -210,14 +210,14 @@ func load(configFile, configDir string, paths []string) (*Config, error) {
 			return nil, ErrUnmarshalConfig
 		}
 
-		// Weakly typed input plus the duration and comma-separated-string-to-slice
-		// hooks are required so quoted scalars and string list values still decode.
+		// Keep explicit duration/list syntax hooks. Reject implicit bool/number/
+		// string coercion before values reach ports, permissions or the backend.
 		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 			DecodeHook: mapstructure.ComposeDecodeHookFunc(
 				mapstructure.StringToTimeDurationHookFunc(),
 				mapstructure.StringToSliceHookFunc(","),
 			),
-			WeaklyTypedInput: true,
+			WeaklyTypedInput: false,
 			ErrorUnused:      true,
 			Result:           &cfg,
 		})
@@ -278,8 +278,8 @@ func validateConfig(cfg *Config) error {
 // the windows-only proxy.enabled rule is unit-testable from any platform.
 // validateConfig (the real entry point) always calls it with runtime.GOOS.
 func validateConfigForGOOS(cfg *Config, goos string) error {
-	if cfg.RefreshInterval <= 0 || cfg.RefreshInterval > 240*time.Second {
-		return errors.New("refresh_interval must be within 0–240 seconds (positive)")
+	if cfg.RefreshInterval < time.Second || cfg.RefreshInterval > 240*time.Second {
+		return errors.New("refresh_interval must be within 1–240 seconds")
 	}
 	if cfg.PingMonitor.Interval <= 0 || cfg.PingMonitor.Interval > 5*time.Minute || cfg.PingMonitor.Timeout <= 0 || cfg.PingMonitor.Timeout > time.Minute || cfg.PingMonitor.FixedRetries < 1 || cfg.PingMonitor.FixedRetries > 10 {
 		return errors.New("invalid ping monitor limits")
@@ -380,6 +380,9 @@ func validateYAML(data []byte) error {
 	visit = func(n *yaml.Node, depth int) error {
 		if depth > 16 || n.Kind == yaml.AliasNode || n.Anchor != "" {
 			return ErrUnmarshalConfig
+		}
+		if n.Kind == yaml.ScalarNode && n.Tag != "!!str" && n.Tag != "!!bool" && n.Tag != "!!int" {
+			return ErrUnmarshalConfig // no nulls, floats, timestamps or custom tags
 		}
 		if n.Kind == yaml.MappingNode {
 			seen := make(map[string]bool)

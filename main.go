@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
@@ -11,9 +12,14 @@ import (
 	"github.com/tjjh89017/stunmesh-go/app"
 )
 
+var buildVersion = "dev"
+
 // version comes from the VCS build info the Go toolchain stamps into the
 // binary: the exact tag when built at one, a pseudo-version otherwise.
 func version() string {
+	if buildVersion != "dev" {
+		return buildVersion
+	}
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
@@ -21,6 +27,13 @@ func version() string {
 }
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "STUNMESH stopped: check configuration and interface permissions")
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	var (
 		oneshot     bool
 		showVersion bool
@@ -41,7 +54,7 @@ func main() {
 
 	if showVersion {
 		fmt.Println(version())
-		return
+		return nil
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -49,18 +62,19 @@ func main() {
 
 	daemon, err := app.New(app.Options{ConfigFile: configFile, ConfigDir: configDir})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer daemon.Close()
 
 	if oneshot {
 		if err := daemon.RunOneshot(ctx); err != nil {
-			panic(err)
+			return err
 		}
-		return
+		return nil
 	}
 
 	if err := daemon.Run(ctx); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

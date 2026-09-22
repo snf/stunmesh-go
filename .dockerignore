@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+*.key
+*.conf
+*.jks
+*.keystore
+artifacts/
+build/
+deploy/
+scripts/
+security-audit-evidence/
+security-remediation-evidence/

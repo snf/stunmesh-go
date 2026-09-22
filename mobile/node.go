@@ -259,16 +259,3 @@ func (n *Node) IsRunning() bool {
 type protectorAdapter struct{ p SocketProtector }
 
 func (a protectorAdapter) Protect(fd int32) bool { return a.p.Protect(fd) }
-
-func logLevel(level string) int {
-	switch level {
-	case "debug", "trace":
-		return device.LogLevelVerbose
-	case "error":
-		return device.LogLevelError
-	case "silent", "disabled":
-		return device.LogLevelSilent
-	default:
-		return device.LogLevelError
-	}
-}
