@@ -26,11 +26,23 @@ func newTestDemux(t *testing.T) *wgproxy.Demux {
 
 // stunMessage builds a header-only STUN message.
 func stunMessage(msgType uint16, txn wgproxy.TxnID) []byte {
-	b := make([]byte, 20)
+	size := 20
+	if msgType == 0x0101 {
+		size = 32
+	}
+	b := make([]byte, size)
 	binary.BigEndian.PutUint16(b[0:2], msgType)
 	binary.BigEndian.PutUint16(b[2:4], 0) // attribute length
 	binary.BigEndian.PutUint32(b[4:8], 0x2112A442)
 	copy(b[8:20], txn[:])
+	if msgType == 0x0101 {
+		binary.BigEndian.PutUint16(b[2:4], 12)
+		binary.BigEndian.PutUint16(b[20:22], 0x0020)
+		binary.BigEndian.PutUint16(b[22:24], 8)
+		b[25] = 1
+		binary.BigEndian.PutUint16(b[26:28], 51820^0x2112)
+		binary.BigEndian.PutUint32(b[28:32], 0xc6336401^0x2112a442)
+	}
 	return b
 }
 
@@ -98,8 +110,8 @@ func TestClassify_StunBindingErrorRoutedToWaiter(t *testing.T) {
 	}
 	select {
 	case <-reply:
+		t.Fatal("unsuccessful response consumed transaction")
 	default:
-		t.Fatal("binding error response was not routed to the waiter")
 	}
 }
 

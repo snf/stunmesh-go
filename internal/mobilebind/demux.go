@@ -4,6 +4,8 @@ package mobilebind
 
 import (
 	"encoding/binary"
+	"github.com/tjjh89017/stunmesh-go/internal/stunwire"
+	"net/netip"
 	"sync"
 )
 
@@ -28,11 +30,11 @@ func IsSTUN(b []byte) bool {
 		return false
 	}
 	msgLen := int(binary.BigEndian.Uint16(b[2:4]))
-	return msgLen%4 == 0 && stunHeaderSize+msgLen <= len(b)
+	return msgLen%4 == 0 && stunHeaderSize+msgLen == len(b) && len(b) <= 2048
 }
 
 // TxnID is a STUN transaction ID (RFC 8489 section 5).
-type TxnID [12]byte
+type TxnID = [12]byte
 
 // TxnIDOf extracts the transaction ID; the caller must have checked IsSTUN.
 func TxnIDOf(b []byte) TxnID {
@@ -44,21 +46,26 @@ func TxnIDOf(b []byte) TxnID {
 // TxnRegistry routes demuxed STUN responses to the transaction that sent the
 // request. Unknown transactions are dropped, which also drops unsolicited
 // STUN traffic.
+type pendingTxn struct {
+	server netip.AddrPort
+	reply  chan []byte
+}
+
 type TxnRegistry struct {
 	mu   sync.Mutex
-	txns map[TxnID]chan []byte
+	txns map[TxnID]pendingTxn
 }
 
 func NewTxnRegistry() *TxnRegistry {
-	return &TxnRegistry{txns: make(map[TxnID]chan []byte)}
+	return &TxnRegistry{txns: make(map[TxnID]pendingTxn)}
 }
 
 // Register returns the channel the response for id will arrive on. The
 // caller must Unregister when done.
-func (r *TxnRegistry) Register(id TxnID) <-chan []byte {
+func (r *TxnRegistry) Register(id TxnID, server netip.AddrPort) <-chan []byte {
 	ch := make(chan []byte, 1)
 	r.mu.Lock()
-	r.txns[id] = ch
+	r.txns[id] = pendingTxn{server: netip.AddrPortFrom(server.Addr().Unmap(), server.Port()), reply: ch}
 	r.mu.Unlock()
 	return ch
 }
@@ -72,18 +79,24 @@ func (r *TxnRegistry) Unregister(id TxnID) {
 // Dispatch delivers a STUN packet to its waiting transaction, returning
 // false when no transaction matches. The packet is copied; the caller may
 // reuse the buffer.
-func (r *TxnRegistry) Dispatch(b []byte) bool {
+func (r *TxnRegistry) Dispatch(b []byte, src netip.AddrPort) bool {
+	if !IsSTUN(b) {
+		return false
+	}
 	id := TxnIDOf(b)
 	r.mu.Lock()
-	ch, ok := r.txns[id]
+	txn, ok := r.txns[id]
 	r.mu.Unlock()
-	if !ok {
+	if !ok || txn.server != netip.AddrPortFrom(src.Addr().Unmap(), src.Port()) {
+		return false
+	}
+	if _, err := stunwire.ParseResponse(b, id); err != nil {
 		return false
 	}
 	pkt := make([]byte, len(b))
 	copy(pkt, b)
 	select {
-	case ch <- pkt:
+	case txn.reply <- pkt:
 	default:
 	}
 	return true

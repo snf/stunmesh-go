@@ -2,8 +2,8 @@ package ctrl
 
 import (
 	"context"
-	"encoding/json"
-	"net"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
 	"strconv"
 	"sync"
 	"time"
@@ -20,22 +20,22 @@ type EstablishController struct {
 	devices       DeviceRepository
 	peers         PeerRepository
 	pluginManager PluginProvider
-	decryptor     EndpointDecryptor
 	deviceConfig  DeviceConfigProvider
 	logger        zerolog.Logger
 	mu            sync.Mutex
+	selection     map[entity.PeerId]*discovery.Selection
 	queue         *queue.Queue[entity.PeerId]
 }
 
-func NewEstablishController(ctrl WireGuardClient, devices DeviceRepository, peers PeerRepository, pluginManager PluginProvider, decryptor EndpointDecryptor, deviceConfig DeviceConfigProvider, logger *zerolog.Logger) *EstablishController {
+func NewEstablishController(ctrl WireGuardClient, devices DeviceRepository, peers PeerRepository, pluginManager PluginProvider, deviceConfig DeviceConfigProvider, logger *zerolog.Logger) *EstablishController {
 	return &EstablishController{
 		wgCtrl:        ctrl,
 		devices:       devices,
 		peers:         peers,
 		pluginManager: pluginManager,
-		decryptor:     decryptor,
 		deviceConfig:  deviceConfig,
 		logger:        logger.With().Str("controller", "establish").Logger(),
+		selection:     make(map[entity.PeerId]*discovery.Selection),
 		queue:         queue.NewBuffered[entity.PeerId](queue.PeerQueueSize),
 	}
 }
@@ -65,65 +65,55 @@ func (c *EstablishController) Execute(ctx context.Context, peerId entity.PeerId)
 	}
 
 	storeCtx := dialer.WithEscape(logger.WithContext(ctx), escapeFor(c.deviceConfig, device))
-	encryptedData, err := store.Get(storeCtx, peer.RemoteId())
-	if err != nil {
-		logger.Warn().Err(err).Msg("endpoint is unavailable or not ready")
+	selection := c.selection[peer.Id()]
+	if selection == nil {
+		selection = &discovery.Selection{}
+		c.selection[peer.Id()] = selection
+	}
+	if reader, ok := c.wgCtrl.(interface {
+		PeerHealth(context.Context, string, wg.Key) (discovery.Health, error)
+	}); ok {
+		health, err := reader.PeerHealth(ctx, string(device.Name()), peer.PublicKey())
+		if err != nil {
+			logger.Warn().Msg("WireGuard health unavailable; retaining endpoint")
+			return
+		}
+		if selection.Working(health, time.Now()) {
+			return
+		}
+	}
+	records, err := store.Get(storeCtx, peer.RemoteId())
+	if err != nil || len(records) == 0 {
 		return
 	}
-
-	// Decrypt entire JSON content
-	res, err := c.decryptor.Decrypt(ctx, &EndpointDecryptRequest{
-		PeerPublicKey: peer.PublicKey(),
-		PrivateKey:    device.PrivateKey(),
-		Data:          encryptedData,
-	})
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to decrypt endpoint")
-		return
-	}
-
-	// Parse decrypted JSON
-	var endpointData EndpointData
-	if err := json.Unmarshal([]byte(res.Content), &endpointData); err != nil {
-		logger.Error().Err(err).Msg("failed to unmarshal endpoint data")
-		return
-	}
-
-	// Log decrypted endpoint data for debugging
-	logger.Trace().Str("json", res.Content).Msg("decrypted endpoint data")
-
-	// Select endpoint based on peer protocol, constrained by what the local
-	// host's own last STUN discovery showed it can reach.
-	status, statusKnown := c.devices.Status(ctx, device.Name())
+	status, known := c.devices.Status(ctx, device.Name())
 	var local *entity.DeviceStatus
-	if statusKnown {
+	if known {
 		local = &status
 	}
-
-	peerProtocol := peer.Protocol()
-	selectedEndpoint, err := SelectEndpoint(endpointData, peerProtocol, local)
-	if err != nil {
-		logger.Error().Err(err).Str("protocol", peerProtocol).Msg("failed to select endpoint")
+	endpoints := []string{}
+	for _, record := range records {
+		if len(endpoints) == 4 {
+			break
+		}
+		data, err := discovery.Decode(record)
+		if err != nil {
+			continue
+		}
+		endpoint, err := SelectEndpoint(data, peer.Protocol(), local)
+		if err == nil && discovery.Allowed(endpoint, nil) {
+			endpoints = append(endpoints, endpoint)
+		}
+	}
+	selected := selection.Next(endpoints)
+	if selected == "" {
 		return
 	}
-	logger.Debug().
-		Str("endpoint", selectedEndpoint).
-		Str("protocol", peerProtocol).
-		Bool("local_status_known", statusKnown).
-		Msg("selected endpoint")
-
-	// Parse host:port
-	host, portStr, err := net.SplitHostPort(selectedEndpoint)
+	ep, err := validation.Endpoint(selected)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to parse endpoint")
 		return
 	}
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to parse port")
-		return
-	}
+	host, port := ep.Addr().String(), int(ep.Port())
 
 	err = c.ConfigureDevice(ctx, peer, host, port)
 	if err != nil {
@@ -133,6 +123,9 @@ func (c *EstablishController) Execute(ctx context.Context, peerId entity.PeerId)
 }
 
 func (c *EstablishController) ConfigureDevice(ctx context.Context, peer *entity.Peer, host string, port int) error {
+	if _, err := validation.HostPort(host, port); err != nil {
+		return err
+	}
 	remoteEndpoint := host + ":" + strconv.FormatInt(int64(port), 10)
 	c.logger.Debug().Str("peer", peer.LocalId()).Str("remote", remoteEndpoint).Msg("configuring device for peer")
 

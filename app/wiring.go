@@ -1,0 +1,62 @@
+package app
+
+import (
+	"context"
+	"github.com/rs/zerolog"
+	"github.com/tjjh89017/stunmesh-go/internal/config"
+	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
+	"github.com/tjjh89017/stunmesh-go/internal/daemon"
+	"github.com/tjjh89017/stunmesh-go/internal/entity"
+	"github.com/tjjh89017/stunmesh-go/internal/logger"
+	"github.com/tjjh89017/stunmesh-go/internal/plugin"
+	"github.com/tjjh89017/stunmesh-go/internal/repo"
+)
+
+// Injectors from wire.go:
+
+func setup(ctx context.Context, cfg *config.Config) (*daemon.Daemon, func(), error) {
+	deviceConfig := config.NewDeviceConfig(cfg)
+	zerologLogger := logger.NewLogger(cfg)
+	appProxyStack, cleanup, err := newProxyStack(cfg, deviceConfig, zerologLogger)
+	if err != nil {
+		return nil, nil, err
+	}
+	client := appProxyStack.Client
+	devices := repo.NewDevices()
+	peers := repo.NewPeers(client)
+	filterPeerService := entity.NewFilterPeerService(peers, deviceConfig)
+	bootstrapController := ctrl.NewBootstrapController(client, cfg, deviceConfig, devices, peers, zerologLogger, filterPeerService)
+	manager, cleanup2, err := providePluginManager(ctx, cfg, zerologLogger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	resolver := appProxyStack.Resolver
+	publishController := ctrl.NewPublishController(devices, peers, manager, resolver, deviceConfig, zerologLogger)
+	establishController := ctrl.NewEstablishController(client, devices, peers, manager, deviceConfig, zerologLogger)
+	pingMonitorController := ctrl.NewPingMonitorController(cfg, devices, peers, publishController, establishController, zerologLogger)
+	daemonDaemon := daemon.New(cfg, bootstrapController, publishController, establishController, pingMonitorController, zerologLogger)
+	return daemonDaemon, func() {
+		cleanup2()
+		cleanup()
+	}, nil
+}
+
+// wire.go:
+
+func providePluginManager(ctx context.Context, config2 *config.Config, logger2 *zerolog.Logger) (*plugin.Manager, func(), error) {
+	manager := plugin.NewManager()
+
+	if err := manager.LoadPlugins(ctx, config2.Plugins); err != nil {
+		return nil, nil, err
+	}
+
+	cleanup := func() {
+		if err := manager.Close(); err != nil {
+			logger2.
+				Warn().Err(err).Msg("failed to close plugin manager")
+		}
+	}
+
+	return manager, cleanup, nil
+}

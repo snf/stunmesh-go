@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
+	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
 )
 
 // Config mirrors the JSON produced by the Android app (TunnelConfig.toJson).
@@ -95,7 +96,27 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 		}
 	}
 	seen := make(map[string]bool)
+	stores := make(map[string]bool)
+	for _, def := range cfg.Plugins {
+		if def.Instance == "" || stores[def.Instance] || len(def.Instance) > 128 {
+			return nil, errors.New("invalid or duplicate store instance")
+		}
+		stores[def.Instance] = true
+		conf := pluginapi.PluginConfig{"name": def.Name}
+		for k, v := range def.Config {
+			if k == "name" {
+				return nil, errors.New("store name must not be overridden")
+			}
+			conf[k] = v
+		}
+		if err := pluginapi.ValidateDefinition(pluginapi.PluginDefinition{Type: def.Type, Config: conf}); err != nil {
+			return nil, err
+		}
+	}
 	for i, p := range cfg.Peers {
+		if p.Plugin != "" && !stores[p.Plugin] {
+			return nil, errors.New("unknown peer store")
+		}
 		if _, err := validation.PublicKey(p.PublicKey); err != nil {
 			return nil, fmt.Errorf("peer %d public_key: %w", i, err)
 		}

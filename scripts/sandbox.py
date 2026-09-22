@@ -11,6 +11,7 @@ from pathlib import Path
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--network', action='store_true')
 p.add_argument('--write-source', action='store_true')
+p.add_argument('--sdk-setup', action='store_true')
 p.add_argument('--repo', choices=('go', 'android'), default='go')
 p.add_argument('--net-admin', action='store_true')
 p.add_argument('command', nargs=argparse.REMAINDER)
@@ -36,6 +37,8 @@ for path in ('/etc/ssl/certs', '/etc/resolv.conf', '/etc/hosts', '/etc/nsswitch.
 cmd += ['--ro-bind', str(build / 'tools'), '/tools', '--bind', str(build / 'cache'), '/cache',
         '--bind', str(build / 'work'), '/work', '--bind', str(build / 'artifacts'), '/artifacts',
         '--bind' if a.write_source else '--ro-bind', str(source), '/src', '--chdir', '/src']
+if a.sdk_setup:
+    cmd += ['--bind', str(build / 'tools/android-sdk'), '/tools/android-sdk']
 env = {
     'PATH': '/tools/go/bin:/tools/jdk/bin:/cache/gopath/bin:/usr/bin:/bin',
     'LANG': 'C.UTF-8', 'TZ': 'UTC', 'GOTOOLCHAIN': 'local', 'GOTELEMETRY': 'off',
@@ -43,6 +46,7 @@ env = {
     'GOFLAGS': '-mod=readonly', 'GOPROXY': 'https://proxy.golang.org' if a.network else 'off',
     'GOSUMDB': 'sum.golang.org', 'GRADLE_USER_HOME': '/cache/gradle',
     'JAVA_HOME': '/tools/jdk', 'JAVA_TOOL_OPTIONS': '-Duser.home=/work/java-user',
+	'LD_LIBRARY_PATH': '/tools/jdk/lib:/tools/jdk/lib/server',
     'ANDROID_HOME': '/tools/android-sdk', 'ANDROID_SDK_ROOT': '/tools/android-sdk',
     'ANDROID_NDK_HOME': '/tools/android-sdk/ndk/29.0.14206865',
     'ANDROID_USER_HOME': '/work/android-user', 'XDG_CACHE_HOME': '/cache/xdg',
@@ -54,4 +58,7 @@ if command and command[0] == '--':
     command = command[1:]
 if not command:
     p.error('a command is required')
+if a.net_admin:
+    cmd += ['--setenv', 'STUNMESH_ISOLATED_TEST_NETWORK', '1', '--ro-bind', str(workspace / 'stunmesh-go/scripts/test-network.py'), '/work/test-network.py']
+    command = ['python3', '/work/test-network.py', *command]
 os.execvp('bwrap', cmd + command)

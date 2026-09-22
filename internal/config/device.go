@@ -66,7 +66,7 @@ func (p *Proxy) IsEnabled(goos string) bool {
 	if p.Enabled != nil {
 		return *p.Enabled
 	}
-	return goos == "windows"
+	return true
 }
 
 type Interface struct {
@@ -157,7 +157,7 @@ func (c *DeviceConfig) GetProxyFib(deviceName string) int {
 func (c *DeviceConfig) GetProxyEnabled(deviceName string, goos string) bool {
 	device, ok := c.device(deviceName)
 	if !ok {
-		return goos == "windows"
+		return true
 	}
 	return device.Proxy.IsEnabled(goos)
 }

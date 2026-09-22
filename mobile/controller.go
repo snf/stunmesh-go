@@ -4,19 +4,19 @@ package mobile
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/netip"
+	"sync"
 	"time"
 
-	"github.com/tjjh89017/stunmesh-go/internal/crypto"
 	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
 	"github.com/tjjh89017/stunmesh-go/internal/mobilebind"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/dialer"
 	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
-	"golang.org/x/crypto/curve25519"
 )
 
 // stunDiscoverer resolves a reflexive address for one address family via
@@ -36,45 +36,50 @@ const (
 )
 
 // controller runs the STUNMESH publish/establish cycle on top of the running
-// device: discover the reflexive address through the shared socket, encrypt
-// and store it via each peer's plugin, fetch and decrypt the peers' records,
+// device: discover the reflexive address through the shared socket, publish
+// a public hint and fetch bounded peers' hints,
 // and apply their endpoints over UAPI.
 //
 // This is a compact mobile counterpart of the desktop controllers
-// (internal/ctrl); it reuses the same crypto, storage-key derivation, plugin
+// (internal/ctrl); it reuses the same public record schema, storage key, store
 // manager and endpoint JSON, so mobile and desktop nodes interoperate.
 type controller struct {
 	node    *Node
-	cfg     *tunnelConfig
+	cfg     *controllerConfig
 	bind    stunDiscoverer
 	manager *plugin.Manager
-	crypt   *crypto.Endpoint
 
-	priv [32]byte
-	pub  [32]byte
+	pub [32]byte
 
 	pluginDefs   map[string]pluginapi.PluginDefinition
 	pluginsReady bool
 
-	lastPublished map[string]string // peer LocalId -> plaintext JSON last stored
-	lastApplied   map[string]string // peer public key -> endpoint last set
+	selection map[string]*discovery.Selection
 
-	cancel context.CancelFunc
-	done   chan struct{}
+	networkMu   sync.Mutex
+	network     underlayState
+	changed     chan struct{}
+	cycleCancel context.CancelFunc
+	cancel      context.CancelFunc
+	done        chan struct{}
 }
 
-func newController(node *Node, bind *mobilebind.Bind) (*controller, error) {
+// The discovery view contains no private key or PSK.
+type discoveryPeer struct{ Name, PublicKey, Plugin, Protocol string }
+type controllerConfig struct {
+	Interface              struct{ Protocol string }
+	Stun                   stunConfig
+	RefreshIntervalSeconds int
+	Peers                  []discoveryPeer
+}
+
+func newController(node *Node, bind *mobilebind.Bind, pub [32]byte) (*controller, error) {
 	cfg := node.cfg
-	priv, err := keyToBytes(cfg.Interface.PrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("private key: %w", err)
+	view := &controllerConfig{Stun: cfg.Stun, RefreshIntervalSeconds: cfg.RefreshIntervalSeconds}
+	view.Interface.Protocol = cfg.Interface.Protocol
+	for _, p := range cfg.Peers {
+		view.Peers = append(view.Peers, discoveryPeer{Name: p.Name, PublicKey: p.PublicKey, Plugin: p.Plugin, Protocol: p.Protocol})
 	}
-	pubSlice, err := curve25519.X25519(priv[:], curve25519.Basepoint)
-	if err != nil {
-		return nil, fmt.Errorf("derive public key: %w", err)
-	}
-	var pub [32]byte
-	copy(pub[:], pubSlice)
 
 	defs := make(map[string]pluginapi.PluginDefinition, len(cfg.Plugins))
 	for _, d := range cfg.Plugins {
@@ -86,17 +91,15 @@ func newController(node *Node, bind *mobilebind.Bind) (*controller, error) {
 	}
 
 	return &controller{
-		node:          node,
-		cfg:           cfg,
-		bind:          bind,
-		manager:       plugin.NewManager(),
-		crypt:         crypto.NewEndpoint(),
-		priv:          priv,
-		pub:           pub,
-		pluginDefs:    defs,
-		lastPublished: make(map[string]string),
-		lastApplied:   make(map[string]string),
-		done:          make(chan struct{}),
+		node:       node,
+		cfg:        view,
+		bind:       bind,
+		manager:    plugin.NewManager(),
+		pub:        pub,
+		pluginDefs: defs,
+		selection:  make(map[string]*discovery.Selection),
+		done:       make(chan struct{}),
+		network:    node.network, changed: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -112,28 +115,62 @@ func (c *controller) stop() {
 	c.cancel()
 	<-c.done
 	if err := c.manager.Close(); err != nil {
-		c.node.listener.OnLog("warn", "plugin manager close: "+err.Error())
+		c.node.listener.OnLog("warn", "discovery operation failed")
 	}
 }
 
 func (c *controller) run(ctx context.Context) {
 	defer close(c.done)
-	interval := time.Duration(c.cfg.RefreshIntervalSeconds) * time.Second
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	c.cycle(ctx)
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+	failures := 0
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			c.cycle(ctx)
+		case <-c.changed:
+			failures = 0
+			for _, s := range c.selection {
+				s.Reset()
+			}
+			// Coalesce a LinkProperties/capability burst into one cycle.
+			timer.Reset(time.Second)
+			continue
+		case <-timer.C:
 		}
+		cycleCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
+		c.networkMu.Lock()
+		state := c.network
+		c.cycleCancel = cancel
+		c.networkMu.Unlock()
+		if !state.online {
+			cancel()
+			continue
+		} // no timer while disconnected
+		ok := c.cycle(cycleCtx)
+		cancel()
+		c.networkMu.Lock()
+		c.cycleCancel = nil
+		c.networkMu.Unlock()
+		if ok {
+			failures = 0
+		} else {
+			failures++
+		}
+		seconds := c.cfg.RefreshIntervalSeconds
+		if failures > 0 {
+			seconds = 20 << min(failures-1, 4)
+			if seconds > 240 {
+				seconds = 240
+			}
+		}
+		// Less than four minutes keeps healthy publications inside the 600s TTL.
+		seconds = max(10, min(240, seconds-5+rand.IntN(11)))
+		timer.Reset(time.Duration(seconds) * time.Second)
 	}
 }
 
-func (c *controller) cycle(ctx context.Context) {
+func (c *controller) cycle(ctx context.Context) bool {
 	listener := c.node.listener
 
 	// Plugin init can need the network (e.g. a zone lookup), so it retries
@@ -143,8 +180,8 @@ func (c *controller) cycle(ctx context.Context) {
 	if !c.pluginsReady {
 		loadCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
 		if err := c.manager.LoadPlugins(loadCtx, c.pluginDefs); err != nil {
-			listener.OnLog("warn", "plugin init: "+err.Error())
-			return
+			listener.OnLog("warn", "discovery operation failed")
+			return false
 		}
 		c.pluginsReady = true
 	}
@@ -152,12 +189,13 @@ func (c *controller) cycle(ctx context.Context) {
 	data, err := c.discover(ctx)
 	var local *entity.DeviceStatus
 	if err != nil {
-		listener.OnLog("warn", "endpoint discovery failed, skipping publish: "+err.Error())
+		listener.OnLog("warn", "discovery operation failed")
 	} else {
 		c.publish(ctx, data)
 		local = &entity.DeviceStatus{IPv4: data.IPv4, IPv6: data.IPv6}
 	}
 	c.establish(ctx, local)
+	return err == nil && ctx.Err() == nil
 }
 
 // discover resolves the reflexive addresses the interface protocol asks for,
@@ -181,7 +219,7 @@ func (c *controller) discover(ctx context.Context) (ctrl.EndpointData, error) {
 		}
 	}
 	warn := func(family string, err error) {
-		listener.OnLog("warn", family+" discovery: "+err.Error())
+		listener.OnLog("warn", family+" discovery unavailable")
 	}
 
 	var data ctrl.EndpointData
@@ -191,6 +229,13 @@ func (c *controller) discover(ctx context.Context) (ctrl.EndpointData, error) {
 }
 
 func (c *controller) discoverFamily(ctx context.Context, network string) (string, error) {
+	c.networkMu.Lock()
+	state := c.network
+	c.networkMu.Unlock()
+	if !state.online || network == "udp4" && !state.ipv4 || network == "udp6" && !state.ipv6 {
+		return "", fmt.Errorf("underlay family unavailable")
+	}
+
 	var lastErr error
 	for _, server := range c.cfg.Stun.Addresses {
 		addr, err := c.probeServer(ctx, network, server)
@@ -240,9 +285,9 @@ func (c *controller) resolveSTUN(ctx context.Context, network, server string) (n
 
 func (c *controller) publish(ctx context.Context, data ctrl.EndpointData) {
 	listener := c.node.listener
-	jsonPlain, err := json.Marshal(data)
+	record, err := discovery.Encode(data)
 	if err != nil {
-		listener.OnLog("error", "marshal endpoint data: "+err.Error())
+		listener.OnLog("warn", "invalid local discovery result")
 		return
 	}
 
@@ -254,39 +299,30 @@ func (c *controller) publish(ctx context.Context, data ctrl.EndpointData) {
 		peerId := entity.NewPeerId(c.pub[:], peerPub[:])
 		localId := peerId.EndpointKey()
 
-		if c.manager.IsDedup(peer.Plugin) && c.lastPublished[localId] == string(jsonPlain) {
-			continue
-		}
 		store, err := c.manager.GetPlugin(peer.Plugin)
 		if err != nil {
-			listener.OnLog("warn", "peer "+peer.Name+": "+err.Error())
-			continue
-		}
-		res, err := c.crypt.Encrypt(ctx, &ctrl.EndpointEncryptRequest{
-			PeerPublicKey: peerPub,
-			PrivateKey:    c.priv,
-			Content:       string(jsonPlain),
-		})
-		if err != nil {
-			listener.OnLog("error", "encrypt for "+peer.Name+": "+err.Error())
+			listener.OnLog("warn", "discovery operation failed")
 			continue
 		}
 		storeCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
-		if err := store.Set(storeCtx, localId, res.Data); err != nil {
-			listener.OnLog("warn", "publish for "+peer.Name+": "+err.Error())
+		if err := store.Set(storeCtx, localId, record); err != nil {
+			listener.OnLog("warn", "discovery operation failed")
 			continue
 		}
-		c.lastPublished[localId] = string(jsonPlain)
 		listener.OnEvent("publish_ok", peer.PublicKey, localId)
 	}
 }
 
-// establish decrypts and applies each peer's stored endpoint. local is the
+// establish validates and applies each peer's public endpoint hint. local is the
 // local host's own last STUN discovery result (nil if unknown or the last
 // discovery cycle failed), passed through to ctrl.SelectEndpoint so a
 // family the local host cannot reach is not selected.
 func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) {
 	listener := c.node.listener
+	health, err := c.node.peerHealth()
+	if err != nil {
+		return
+	}
 	for _, peer := range c.cfg.Peers {
 		peerPub, err := keyToBytes(peer.PublicKey)
 		if err != nil {
@@ -298,38 +334,47 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 		if err != nil {
 			continue
 		}
+		selection := c.selection[peer.PublicKey]
+		if selection == nil {
+			selection = &discovery.Selection{}
+			c.selection[peer.PublicKey] = selection
+		}
+		status, exists := health[peer.PublicKey]
+		if !exists {
+			continue
+		}
+		if selection.Working(status, time.Now()) {
+			listener.OnEvent("peer_authenticated", peer.PublicKey, "")
+			continue
+		}
 		storeCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
-		encrypted, err := store.Get(storeCtx, peerId.RemoteEndpointKey())
-		if err != nil {
-			listener.OnLog("debug", "no record for "+peer.Name+": "+err.Error())
+		records, err := store.Get(storeCtx, peerId.RemoteEndpointKey())
+		if err != nil || len(records) == 0 {
+			listener.OnLog("debug", "peer hint unavailable")
 			continue
 		}
-		res, err := c.crypt.Decrypt(ctx, &ctrl.EndpointDecryptRequest{
-			PeerPublicKey: peerPub,
-			PrivateKey:    c.priv,
-			Data:          encrypted,
-		})
-		if err != nil {
-			listener.OnLog("warn", "decrypt for "+peer.Name+": "+err.Error())
+		endpoints := []string{}
+		for _, record := range records {
+			if len(endpoints) == 4 {
+				break
+			}
+			data, err := discovery.Decode(record)
+			if err != nil {
+				continue
+			}
+			endpoint, err := ctrl.SelectEndpoint(data, peer.Protocol, local)
+			if err == nil && discovery.Allowed(endpoint, nil) {
+				endpoints = append(endpoints, endpoint)
+			}
+		}
+		endpoint := selection.Next(endpoints)
+		if endpoint == "" || endpoint == status.Endpoint {
 			continue
 		}
-		var data ctrl.EndpointData
-		if err := json.Unmarshal([]byte(res.Content), &data); err != nil {
-			listener.OnLog("warn", "parse record for "+peer.Name+": "+err.Error())
-			continue
-		}
-		endpoint, err := ctrl.SelectEndpoint(data, peer.Protocol, local)
-		if err != nil {
-			listener.OnLog("warn", "select endpoint for "+peer.Name+": "+err.Error())
-			continue
-		}
-		if c.lastApplied[peer.PublicKey] == endpoint {
-			continue
-		}
+
 		if err := c.node.SetPeerEndpoint(peer.PublicKey, endpoint); err != nil {
-			listener.OnLog("error", "set endpoint for "+peer.Name+": "+err.Error())
+			listener.OnLog("error", "discovery operation failed")
 			continue
 		}
-		c.lastApplied[peer.PublicKey] = endpoint
 	}
 }

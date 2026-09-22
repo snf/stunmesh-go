@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/rs/zerolog"
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/routeprobe"
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
 	"github.com/tjjh89017/stunmesh-go/internal/wgproxy"
@@ -98,7 +99,9 @@ func (c *proxyClient) UpdatePeerEndpoint(ctx context.Context, u PeerEndpointUpda
 	if err != nil {
 		return fmt.Errorf("wg: register peer with proxy: %w", err)
 	}
-	proxy.SetPeerEndpoint(u.PublicKey, remote)
+	if err := proxy.SetPeerEndpoint(u.PublicKey, remote); err != nil {
+		return err
+	}
 	c.logger.Debug().
 		Str("device", u.DeviceName).
 		Str("remote", remote.String()).
@@ -130,4 +133,15 @@ func (c *proxyClient) families(deviceName string) map[wgproxy.Family]uint16 {
 	default:
 		return map[wgproxy.Family]uint16{wgproxy.FamilyIPv4: port}
 	}
+}
+
+// PeerHealth delegates to the public-only backend; the loopback endpoint is
+// just the local relay. WireGuard handshake/receive counters remain authoritative.
+func (c *proxyClient) PeerHealth(ctx context.Context, name string, key Key) (discovery.Health, error) {
+	if reader, ok := c.inner.(interface {
+		PeerHealth(context.Context, string, Key) (discovery.Health, error)
+	}); ok {
+		return reader.PeerHealth(ctx, name, key)
+	}
+	return discovery.Health{}, errors.New("WireGuard health unavailable")
 }

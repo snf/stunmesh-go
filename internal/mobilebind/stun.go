@@ -4,10 +4,9 @@ package mobilebind
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/tjjh89017/stunmesh-go/internal/stunwire"
 	"net/netip"
 	"time"
 )
@@ -50,7 +49,7 @@ func (b *Bind) Discover(ctx context.Context, dst netip.AddrPort) (netip.AddrPort
 	if err != nil {
 		return netip.AddrPort{}, err
 	}
-	ch := b.registry.Register(txn)
+	ch := b.registry.Register(txn, dst)
 	defer b.registry.Unregister(txn)
 
 	rto := stunInitialRTO
@@ -59,109 +58,29 @@ func (b *Bind) Discover(ctx context.Context, dst netip.AddrPort) (netip.AddrPort
 			return netip.AddrPort{}, fmt.Errorf("stun: send: %w", err)
 		}
 		timer := time.NewTimer(rto)
-		select {
-		case resp := <-ch:
-			timer.Stop()
-			return parseBindingResponse(resp, txn)
-		case <-ctx.Done():
-			timer.Stop()
-			return netip.AddrPort{}, ctx.Err()
-		case <-timer.C:
-			rto *= 2
+		waiting := true
+		for waiting {
+			select {
+			case resp := <-ch:
+				result, err := parseBindingResponse(resp, txn)
+				if err == nil {
+					timer.Stop()
+					return result, nil
+				} // ignore malformed replies until the original deadline
+			case <-ctx.Done():
+				timer.Stop()
+				return netip.AddrPort{}, ctx.Err()
+			case <-timer.C:
+				rto *= 2
+				waiting = false
+			}
 		}
+
 	}
 	return netip.AddrPort{}, ErrStunTimeout
 }
 
-func buildBindingRequest() ([]byte, TxnID, error) {
-	var txn TxnID
-	if _, err := rand.Read(txn[:]); err != nil {
-		return nil, txn, fmt.Errorf("stun: txn id: %w", err)
-	}
-	msg := make([]byte, stunHeaderSize)
-	binary.BigEndian.PutUint16(msg[0:2], stunBindingRequest)
-	binary.BigEndian.PutUint16(msg[2:4], 0)
-	binary.BigEndian.PutUint32(msg[4:8], stunMagicCookie)
-	copy(msg[8:20], txn[:])
-	return msg, txn, nil
-}
-
+func buildBindingRequest() ([]byte, TxnID, error) { return stunwire.BuildRequest() }
 func parseBindingResponse(msg []byte, txn TxnID) (netip.AddrPort, error) {
-	if !IsSTUN(msg) || TxnIDOf(msg) != txn {
-		return netip.AddrPort{}, errors.New("stun: not a matching response")
-	}
-	if binary.BigEndian.Uint16(msg[0:2]) != stunBindingSuccess {
-		return netip.AddrPort{}, fmt.Errorf("stun: error response type %#04x", binary.BigEndian.Uint16(msg[0:2]))
-	}
-
-	attrs := msg[stunHeaderSize : stunHeaderSize+int(binary.BigEndian.Uint16(msg[2:4]))]
-	for len(attrs) >= 4 {
-		attrType := binary.BigEndian.Uint16(attrs[0:2])
-		attrLen := int(binary.BigEndian.Uint16(attrs[2:4]))
-		if 4+attrLen > len(attrs) {
-			break
-		}
-		value := attrs[4 : 4+attrLen]
-		switch attrType {
-		case attrXorMappedAddress:
-			return decodeAddress(value, txn, true)
-		case attrMappedAddress:
-			// Only a fallback: legacy servers without XOR-MAPPED-ADDRESS.
-			return decodeAddress(value, txn, false)
-		}
-		// Attributes are padded to 4-byte boundaries.
-		attrs = attrs[4+(attrLen+3)/4*4:]
-	}
-	return netip.AddrPort{}, errors.New("stun: no mapped address attribute")
-}
-
-func decodeAddress(value []byte, txn TxnID, xored bool) (netip.AddrPort, error) {
-	if len(value) < 8 {
-		return netip.AddrPort{}, errors.New("stun: short address attribute")
-	}
-	family := value[1]
-	port := binary.BigEndian.Uint16(value[2:4])
-	if xored {
-		port ^= uint16(stunMagicCookie >> 16)
-	}
-
-	var rawAddr []byte
-	switch family {
-	case 0x01: // IPv4
-		if len(value) < 8 {
-			return netip.AddrPort{}, errors.New("stun: short IPv4 attribute")
-		}
-		rawAddr = append([]byte(nil), value[4:8]...)
-		if xored {
-			var cookie [4]byte
-			binary.BigEndian.PutUint32(cookie[:], stunMagicCookie)
-			for i := range rawAddr {
-				rawAddr[i] ^= cookie[i]
-			}
-		}
-	case 0x02: // IPv6: xor with magic cookie followed by the txn id
-		if len(value) < 20 {
-			return netip.AddrPort{}, errors.New("stun: short IPv6 attribute")
-		}
-		rawAddr = append([]byte(nil), value[4:20]...)
-		if xored {
-			var mask [16]byte
-			binary.BigEndian.PutUint32(mask[0:4], stunMagicCookie)
-			copy(mask[4:], txn[:])
-			for i := range rawAddr {
-				rawAddr[i] ^= mask[i]
-			}
-		}
-	default:
-		return netip.AddrPort{}, fmt.Errorf("stun: unknown address family %#02x", family)
-	}
-
-	addr, ok := netip.AddrFromSlice(rawAddr)
-	if !ok {
-		return netip.AddrPort{}, errors.New("stun: invalid address")
-	}
-	if port == 0 || !addr.IsValid() {
-		return netip.AddrPort{}, errors.New("stun: invalid mapped endpoint")
-	}
-	return netip.AddrPortFrom(addr, port), nil
+	return stunwire.ParseResponse(msg, txn)
 }

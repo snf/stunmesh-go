@@ -129,9 +129,10 @@ func (f *fakeListener) hasLogContaining(substr string) bool {
 // that do not apply to the family it is resolving for.
 func newDiscoverTestController(protocol string, disc *fakeDiscoverer, lst *fakeListener) *controller {
 	return &controller{
-		node: &Node{listener: lst},
-		cfg: &tunnelConfig{
-			Interface: ifaceConfig{Protocol: protocol},
+		network: underlayState{online: true, ipv4: true, ipv6: true},
+		node:    &Node{listener: lst},
+		cfg: &controllerConfig{
+			Interface: struct{ Protocol string }{Protocol: protocol},
 			Stun: stunConfig{Addresses: []string{
 				"192.0.2.1:19302",
 				"[2001:db8:5747::1]:19302",
@@ -199,7 +200,7 @@ func TestControllerDiscover_DualstackPartialFail(t *testing.T) {
 	if data.IPv6 != "" {
 		t.Errorf("IPv6 = %q, want empty since IPv6 resolution failed", data.IPv6)
 	}
-	if !lst.hasLogContaining("ipv6 discovery:") {
+	if !lst.hasLogContaining("ipv6 discovery unavailable") {
 		t.Errorf("expected a warning about the failed ipv6 discovery, got logs: %v", lst.logs)
 	}
 }

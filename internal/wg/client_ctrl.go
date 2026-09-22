@@ -1,10 +1,9 @@
-//go:build !wgcli && (wgctrl || !freebsd)
-
 package wg
 
 import (
 	"context"
 	"net"
+	"os/exec"
 
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
 
@@ -16,43 +15,29 @@ import (
 // extracted as a test seam so Device/UpdatePeerEndpoint can be exercised
 // with a fake instead of a real WireGuard device.
 type wgctrlBackend interface {
-	Device(name string) (*wgtypes.Device, error)
 	ConfigureDevice(name string, cfg wgtypes.Config) error
 	Close() error
 }
 
 type ctrlClient struct {
-	c wgctrlBackend
+	c      wgctrlBackend
+	runner Runner
 }
 
 func New() (Client, error) {
+	if _, err := exec.LookPath("wg"); err != nil {
+		return nil, err
+	}
 	c, err := wgctrl.New()
 	if err != nil {
 		return nil, err
 	}
-	return &ctrlClient{c: c}, nil
+	return &ctrlClient{c: c, runner: defaultRunner}, nil
 }
 
-// Device ignores ctx: wgctrl has no context-aware API.
+// Device reads only public metadata through the standard WireGuard tool.
 func (cc *ctrlClient) Device(ctx context.Context, name string) (*DeviceInfo, error) {
-	d, err := cc.c.Device(name)
-	if err != nil {
-		return nil, elevationHint(err)
-	}
-
-	peerKeys := make([]Key, 0, len(d.Peers))
-	for _, peer := range d.Peers {
-		peerKeys = append(peerKeys, Key(peer.PublicKey))
-	}
-
-	return &DeviceInfo{
-		Name:         d.Name,
-		ListenPort:   d.ListenPort,
-		PrivateKey:   Key(d.PrivateKey),
-		PublicKey:    Key(d.PublicKey),
-		PeerKeys:     peerKeys,
-		FirewallMark: d.FirewallMark,
-	}, nil
+	return publicInfo(ctx, name, cc.runner)
 }
 
 // UpdatePeerEndpoint ignores ctx: wgctrl has no context-aware API.

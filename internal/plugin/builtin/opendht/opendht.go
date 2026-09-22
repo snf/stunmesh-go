@@ -1,5 +1,5 @@
-//go:build builtin_opendht || builtin_all
-
+// Package opendht exchanges untrusted, public endpoint hints. It never handles
+// authentication keys; only WireGuard may authenticate the endpoint it suggests.
 package opendht
 
 import (
@@ -8,307 +8,214 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/builtin"
 	"github.com/tjjh89017/stunmesh-go/internal/plugin/dialer"
-
-	"github.com/rs/zerolog"
-	"github.com/tjjh89017/stunmesh-go/internal/plugin/registry"
-	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
+	"github.com/tjjh89017/stunmesh-go/pluginapi"
 )
-
-func init() {
-	registry.Register("opendht", NewOpenDHTPlugin)
-}
 
 const (
-	defaultMagic   = "stunmesh-v1"
-	defaultTimeout = 15 * time.Second
-
-	// Configuration keys
-	configKeyEndpoint  = "endpoint"
-	configKeyEndpoints = "endpoints"
-	configKeyMagic     = "magic"
-	configKeyTimeout   = "timeout"
+	MaxResponseBytes = 256 * 1024
+	MaxRecords       = 64
+	MaxCandidates    = 4
+	defaultTimeout   = 10 * time.Second
 )
 
-// An OpenDHT key is an InfoHash: 160 bits, i.e. 40 hex characters. stunmesh
-// keys are SHA1 hex, so they are used as-is -- but reject anything else
-// rather than let the proxy interpret a bad path segment.
-var keyPattern = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
+var keyPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+var errUnavailable = errors.New("OpenDHT has no usable hint")
 
-// OpenDHTPlugin implements the Store interface
 type OpenDHTPlugin struct {
 	endpoints []string
-	magic     string
 	client    *http.Client
 }
-
-// envelope wraps the value stored under a key.
-//
-// A key holds a set of values rather than a single overwritable slot, and
-// anyone may publish under a key they know, so a stored value cannot be
-// assumed to be ours. Publishing every refresh cycle against OpenDHT's
-// 10-minute expiry also leaves several of our own values under a key at once,
-// returned in no particular order -- so Ts is what tells them apart, not just
-// a tie-breaker.
 type envelope struct {
 	Magic string `json:"magic"`
-	Ts    int64  `json:"ts"`
 	Data  string `json:"data"`
 }
-
-// value is one entry as the proxy reports it. Get returns them as
-// newline-delimited JSON, one object per line.
 type value struct {
 	Data string `json:"data"`
 }
 
-// normalizeEndpoint requires an explicit http:// or https:// scheme. Go's http
-// client rejects a bare host with "unsupported protocol scheme", but only once
-// a request is made -- every refresh cycle, long after startup. curl would
-// instead assume http, which for a scheme-less "dhtproxy.jami.net" is a silent
-// downgrade from the https the default endpoint uses. Neither is a good answer
-// to a value that simply does not say what it means.
 func normalizeEndpoint(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return "", fmt.Errorf("opendht endpoint %q must start with http:// or https://", endpoint)
+	if err != nil || len(endpoint) > 1024 || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.RawPath != "" || (u.Path != "" && u.Path != "/") {
+		return "", errors.New("OpenDHT endpoint must be an HTTPS origin without credentials, path, query or fragment")
 	}
-
-	// doRequest joins with "/key/...", so a trailing slash would double it.
-	return strings.TrimRight(endpoint, "/"), nil
+	if u.Port() != "" {
+		if err := validation.Server(u.Host); err != nil {
+			return "", errors.New("invalid OpenDHT endpoint port")
+		}
+	}
+	return strings.TrimSuffix(u.String(), "/"), nil
 }
 
-// resolveEndpoints merges the singular endpoint in front of the endpoints list
-// and deduplicates preserving order, the same shape as stun.address feeding
-// stun.addresses. Every entry is validated here so a typo in the third one is
-// not discovered only when the first two happen to be down.
-func resolveEndpoints(cfg *builtin.Config) ([]string, error) {
-	list, err := cfg.GetStringSlice(configKeyEndpoints)
-	if err != nil {
+func NewOpenDHTPlugin(config pluginapi.PluginConfig) (pluginapi.Store, error) {
+	if err := pluginapi.ValidateDefinition(pluginapi.PluginDefinition{Type: "builtin", Config: config}); err != nil {
 		return nil, err
 	}
-
-	single, _ := cfg.GetString(configKeyEndpoint)
-
-	seen := make(map[string]struct{})
-	endpoints := make([]string, 0, len(list)+1)
-	for _, endpoint := range append([]string{single}, list...) {
-		if endpoint == "" {
-			continue
-		}
-
-		normalized, err := normalizeEndpoint(endpoint)
+	cfg := builtin.NewConfig(config)
+	list, err := cfg.GetStringSlice("endpoints")
+	if err != nil {
+		return nil, errors.New("invalid OpenDHT endpoints")
+	}
+	single, _ := cfg.GetString("endpoint")
+	if single != "" {
+		list = append([]string{single}, list...)
+	}
+	if len(list) == 0 || len(list) > 8 {
+		return nil, errors.New("OpenDHT requires one to eight proxy endpoints")
+	}
+	endpoints := []string{}
+	seen := map[string]bool{}
+	for _, s := range list {
+		e, err := normalizeEndpoint(s)
 		if err != nil {
 			return nil, err
 		}
-
-		if _, ok := seen[normalized]; ok {
-			continue
+		if !seen[e] {
+			seen[e] = true
+			endpoints = append(endpoints, e)
 		}
-		seen[normalized] = struct{}{}
-		endpoints = append(endpoints, normalized)
 	}
-
-	// No default: which proxy to trust is a decision for whoever runs the
-	// mesh, not something to inherit silently. The plugin README suggests some.
-	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("opendht needs %s or %s; see the plugin README for suggested proxies", configKeyEndpoint, configKeyEndpoints)
-	}
-
-	return endpoints, nil
-}
-
-// NewOpenDHTPlugin creates a new OpenDHT plugin instance
-func NewOpenDHTPlugin(config pluginapi.PluginConfig) (pluginapi.Store, error) {
-	cfg := builtin.NewConfig(config)
-
-	endpoints, err := resolveEndpoints(cfg)
+	timeout, ok, err := cfg.GetDuration("timeout")
 	if err != nil {
-		return nil, err
-	}
-
-	magic, ok := cfg.GetString(configKeyMagic)
-	if !ok || magic == "" {
-		magic = defaultMagic
-	}
-
-	timeout, ok, err := cfg.GetDuration(configKeyTimeout)
-	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid OpenDHT timeout")
 	}
 	if !ok {
 		timeout = defaultTimeout
 	}
-
-	client := &http.Client{
-		// A lookup that finds nothing legitimately takes several seconds to
-		// converge, so a short timeout turns a slow success into a false
-		// "not found".
-		Timeout: timeout,
-		// Through the shared dialer so the request escapes a covering tunnel
-		// route instead of being carried into the tunnel it is meant to bring
-		// up. See internal/plugin/dialer.
-		Transport: dialer.Transport(),
+	if timeout < time.Second || timeout > 20*time.Second {
+		return nil, errors.New("OpenDHT timeout must be between 1s and 20s")
 	}
-
-	return &OpenDHTPlugin{
-		endpoints: endpoints,
-		magic:     magic,
-		client:    client,
-	}, nil
+	return &OpenDHTPlugin{endpoints: endpoints, client: &http.Client{Timeout: timeout, Transport: dialer.Transport(), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
-// doRequest tries each endpoint in order and returns the first success. Only a
-// failed request moves on to the next: a request that succeeds but carries no
-// value for the key is an answer, not a failure, and every endpoint fronts the
-// same DHT so asking another would give the same one.
-func (p *OpenDHTPlugin) doRequest(ctx context.Context, method, key string, body []byte) ([]byte, error) {
-	logger := zerolog.Ctx(ctx)
-
-	var errs []error
-	for _, endpoint := range p.endpoints {
-		data, err := p.doRequestTo(ctx, endpoint, method, key, body)
-		if err == nil {
-			return data, nil
-		}
-
-		logger.Warn().Err(err).Str("endpoint", endpoint).Msg("opendht endpoint failed, trying next")
-		errs = append(errs, fmt.Errorf("%s: %w", endpoint, err))
-	}
-
-	return nil, errors.Join(errs...)
-}
-
-func (p *OpenDHTPlugin) doRequestTo(ctx context.Context, endpoint, method, key string, body []byte) ([]byte, error) {
-	url := fmt.Sprintf("%s/key/%s", endpoint, key)
-
-	var bodyReader io.Reader
-	if body != nil {
-		bodyReader = bytes.NewReader(body)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+func (p *OpenDHTPlugin) request(ctx context.Context, endpoint, method, key string, body []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, endpoint+"/key/"+key, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return nil, errUnavailable
 	}
-
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errUnavailable
 	}
-	defer func() { _ = resp.Body.Close() }()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errUnavailable
 	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error: %s - %s", resp.Status, string(data))
+	// net/http transparently decompresses gzip. Bound the decoded body, too.
+	b, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponseBytes+1))
+	if err != nil || len(b) > MaxResponseBytes {
+		return nil, errUnavailable
 	}
-
-	return data, nil
+	return b, nil
 }
 
-// Close closes the plugin's idle HTTP connections. Safe to call more than
-// once.
-func (p *OpenDHTPlugin) Close() error {
-	p.client.CloseIdleConnections()
-	return nil
-}
-
-// Get retrieves a value from OpenDHT
-func (p *OpenDHTPlugin) Get(ctx context.Context, key string) (string, error) {
-	logger := zerolog.Ctx(ctx)
-	logger.Info().Str("key", key).Msg("get data from builtin opendht plugin")
-
-	if !keyPattern.MatchString(key) {
-		return "", fmt.Errorf("key must be 40 hex characters: %s", key)
+// Parse at most 64 proxy records and retain four distinct valid candidates.
+// Neither ordering nor publisher timestamps claim freshness or authentication.
+func candidates(data []byte) []string {
+	if len(data) > MaxResponseBytes {
+		return nil
 	}
-
-	data, err := p.doRequest(ctx, http.MethodGet, key, nil)
-	if err != nil {
-		return "", err
-	}
-
-	// Keep the entries carrying our magic and return the most recent. Values
-	// that are not our envelope -- or not JSON at all -- are ignored, which
-	// also absorbs whatever a third party publishes under the same key.
-	var newest *envelope
-	for _, line := range bytes.Split(data, []byte("\n")) {
+	lines := bytes.Split(data, []byte("\n"))
+	count := 0
+	found := map[string]bool{}
+	for _, line := range lines {
 		if len(bytes.TrimSpace(line)) == 0 {
 			continue
 		}
-
-		var v value
-		if err := json.Unmarshal(line, &v); err != nil {
+		count++
+		if count > MaxRecords {
+			return nil
+		}
+		// Proxies may include their own metadata. Only data is interpreted here.
+		var outer map[string]json.RawMessage
+		if validation.DecodeJSON(line, &outer) != nil {
 			continue
 		}
-
-		raw, err := base64.StdEncoding.DecodeString(v.Data)
+		var encoded string
+		if json.Unmarshal(outer["data"], &encoded) != nil || len(encoded) > 4096 {
+			continue
+		}
+		raw, err := base64.StdEncoding.Strict().DecodeString(encoded)
 		if err != nil {
 			continue
 		}
-
 		var e envelope
-		if err := json.Unmarshal(raw, &e); err != nil {
+		if validation.DecodeJSON(raw, &e) != nil || e.Magic != discovery.Namespace {
 			continue
 		}
-
-		if e.Magic != p.magic {
+		record, err := discovery.Decode(e.Data)
+		if err != nil {
 			continue
 		}
-
-		if newest == nil || e.Ts > newest.Ts {
-			found := e
-			newest = &found
+		canonical, err := discovery.Encode(record)
+		if err != nil {
+			continue
 		}
+		found[canonical] = true
 	}
-
-	if newest == nil {
-		return "", fmt.Errorf("no value found for key: %s", key)
+	result := make([]string, 0, len(found))
+	for r := range found {
+		result = append(result, r)
 	}
-
-	return newest.Data, nil
+	sort.Strings(result)
+	if len(result) > MaxCandidates {
+		result = result[:MaxCandidates]
+	}
+	return result
 }
 
-// Set stores a value in OpenDHT
-func (p *OpenDHTPlugin) Set(ctx context.Context, key string, value string) error {
-	logger := zerolog.Ctx(ctx)
-	logger.Info().Str("key", key).Msg("set data to builtin opendht plugin")
-
+func (p *OpenDHTPlugin) Get(ctx context.Context, key string) ([]string, error) {
 	if !keyPattern.MatchString(key) {
-		return fmt.Errorf("key must be 40 hex characters: %s", key)
+		return nil, errors.New("invalid discovery key")
 	}
-
-	payload, err := json.Marshal(&envelope{
-		Magic: p.magic,
-		Ts:    time.Now().Unix(),
-		Data:  value,
-	})
-	if err != nil {
-		return err
+	ctx, cancel := context.WithTimeout(ctx, 40*time.Second)
+	defer cancel()
+	for _, endpoint := range p.endpoints {
+		data, err := p.request(ctx, endpoint, http.MethodGet, key, nil)
+		if err == nil {
+			if result := candidates(data); len(result) > 0 {
+				return result, nil
+			}
+		}
+		if ctx.Err() != nil {
+			break
+		}
 	}
-
-	body, err := json.Marshal(map[string]string{
-		"data": base64.StdEncoding.EncodeToString(payload),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = p.doRequest(ctx, http.MethodPost, key, body)
-	return err
+	return nil, errUnavailable
 }
+func (p *OpenDHTPlugin) Set(ctx context.Context, key, record string) error {
+	if !keyPattern.MatchString(key) {
+		return errors.New("invalid discovery key")
+	}
+	r, err := discovery.Decode(record)
+	if err != nil {
+		return errors.New("invalid discovery record")
+	}
+	canonical, _ := discovery.Encode(r)
+	raw, _ := json.Marshal(envelope{Magic: discovery.Namespace, Data: canonical})
+	body, _ := json.Marshal(value{Data: base64.StdEncoding.EncodeToString(raw)})
+	ctx, cancel := context.WithTimeout(ctx, 40*time.Second)
+	defer cancel()
+	for _, endpoint := range p.endpoints {
+		if _, err := p.request(ctx, endpoint, http.MethodPost, key, body); err == nil {
+			return nil
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return errUnavailable
+}
+func (p *OpenDHTPlugin) Close() error { p.client.CloseIdleConnections(); return nil }

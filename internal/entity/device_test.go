@@ -9,12 +9,10 @@ import (
 func TestNewDevice(t *testing.T) {
 	name := entity.DeviceId("wg0")
 	listenPort := 51820
-	privateKey := make([]byte, 32)
-	privateKey[0] = 1
 	protocol := "ipv4"
 	firewallMark := 0xca6c
 
-	device := entity.NewDevice(name, listenPort, privateKey, protocol, firewallMark)
+	device := entity.NewDevice(name, listenPort, protocol, firewallMark)
 
 	if device == nil {
 		t.Fatal("Expected device to be created")
@@ -36,11 +34,6 @@ func TestNewDevice(t *testing.T) {
 		t.Errorf("Expected firewall mark %#x, got %#x", firewallMark, device.FirewallMark())
 	}
 
-	// Check private key
-	key := device.PrivateKey()
-	if key[0] != 1 {
-		t.Errorf("Expected private key first byte to be 1, got %d", key[0])
-	}
 }
 
 func TestDevice_Name(t *testing.T) {
@@ -56,7 +49,7 @@ func TestDevice_Name(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			device := entity.NewDevice(tt.deviceName, 51820, make([]byte, 32), "ipv4", 0)
+			device := entity.NewDevice(tt.deviceName, 51820, "ipv4", 0)
 
 			if device.Name() != tt.deviceName {
 				t.Errorf("Expected name %s, got %s", tt.deviceName, device.Name())
@@ -78,36 +71,12 @@ func TestDevice_ListenPort(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			device := entity.NewDevice("wg0", tt.listenPort, make([]byte, 32), "ipv4", 0)
+			device := entity.NewDevice("wg0", tt.listenPort, "ipv4", 0)
 
 			if device.ListenPort() != tt.listenPort {
 				t.Errorf("Expected listen port %d, got %d", tt.listenPort, device.ListenPort())
 			}
 		})
-	}
-}
-
-func TestDevice_PrivateKey(t *testing.T) {
-	privateKey := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		privateKey[i] = byte(i)
-	}
-
-	device := entity.NewDevice("wg0", 51820, privateKey, "ipv4", 0)
-	retrievedKey := device.PrivateKey()
-
-	// Verify key is copied correctly
-	for i := 0; i < 32; i++ {
-		if retrievedKey[i] != byte(i) {
-			t.Errorf("Expected key byte %d to be %d, got %d", i, i, retrievedKey[i])
-		}
-	}
-
-	// Verify modifying returned key doesn't affect original
-	retrievedKey[0] = 255
-	secondKey := device.PrivateKey()
-	if secondKey[0] != 0 {
-		t.Error("Expected private key to be immutable (copy returned)")
 	}
 }
 
@@ -123,50 +92,11 @@ func TestDevice_Protocol(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			device := entity.NewDevice("wg0", 51820, make([]byte, 32), tt.protocol, 0)
+			device := entity.NewDevice("wg0", 51820, tt.protocol, 0)
 
 			if device.Protocol() != tt.protocol {
 				t.Errorf("Expected protocol %s, got %s", tt.protocol, device.Protocol())
 			}
-		})
-	}
-}
-
-func TestDevice_GettersImmutability(t *testing.T) {
-	// Test that getters return values, not references that can be modified
-	device := entity.NewDevice("wg0", 51820, make([]byte, 32), "ipv4", 0)
-
-	// Get private key twice and modify first
-	key1 := device.PrivateKey()
-	key1[0] = 99
-
-	key2 := device.PrivateKey()
-	if key2[0] == 99 {
-		t.Error("Device private key should be immutable (return copy)")
-	}
-}
-
-func TestNewDevice_PrivateKeyLengthMismatch_DoesNotPanic(t *testing.T) {
-	tests := []struct {
-		name       string
-		privateKey []byte
-	}{
-		{"too short", []byte{1, 2, 3}},
-		{"empty", []byte{}},
-		{"too long", make([]byte, 40)},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			device := entity.NewDevice(entity.DeviceId("wg0"), 51820, tt.privateKey, "ipv4", 0)
-
-			if device == nil {
-				t.Fatal("Expected device to be created despite the mismatched key length")
-			}
-
-			// PrivateKey() copies into a fixed-size array regardless of the
-			// source length, so it must remain safe to call.
-			_ = device.PrivateKey()
 		})
 	}
 }

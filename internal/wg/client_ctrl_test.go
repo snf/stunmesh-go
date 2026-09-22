@@ -1,5 +1,3 @@
-//go:build !wgcli && (wgctrl || !freebsd)
-
 package wg
 
 import (
@@ -31,79 +29,6 @@ func (f *fakeWgctrlBackend) ConfigureDevice(name string, cfg wgtypes.Config) err
 
 func (f *fakeWgctrlBackend) Close() error {
 	return nil
-}
-
-func TestCtrlClient_Device_MapsFields(t *testing.T) {
-	var priv, pub, peerKey wgtypes.Key
-	copy(priv[:], bytes32(0x01))
-	copy(pub[:], bytes32(0x02))
-	copy(peerKey[:], bytes32(0x03))
-
-	backend := &fakeWgctrlBackend{
-		deviceFn: func(name string) (*wgtypes.Device, error) {
-			if name != "testdev" {
-				t.Fatalf("Device called with name = %q, want %q", name, "testdev")
-			}
-			return &wgtypes.Device{
-				Name:         name,
-				ListenPort:   51820,
-				PrivateKey:   priv,
-				PublicKey:    pub,
-				FirewallMark: 0xca6c,
-				Peers: []wgtypes.Peer{
-					{PublicKey: peerKey},
-				},
-			}, nil
-		},
-	}
-	c := &ctrlClient{c: backend}
-
-	info, err := c.Device(context.Background(), "testdev")
-	if err != nil {
-		t.Fatalf("Device: unexpected error: %v", err)
-	}
-
-	if info.Name != "testdev" {
-		t.Errorf("Name = %q, want %q", info.Name, "testdev")
-	}
-	if info.ListenPort != 51820 {
-		t.Errorf("ListenPort = %d, want 51820", info.ListenPort)
-	}
-	if info.PrivateKey != Key(priv) {
-		t.Errorf("PrivateKey mismatch")
-	}
-	if info.PublicKey != Key(pub) {
-		t.Errorf("PublicKey mismatch")
-	}
-	if info.FirewallMark != 0xca6c {
-		t.Errorf("FirewallMark = %#x, want %#x", info.FirewallMark, 0xca6c)
-	}
-	if len(info.PeerKeys) != 1 || info.PeerKeys[0] != Key(peerKey) {
-		t.Errorf("PeerKeys = %v, want [%v]", info.PeerKeys, peerKey)
-	}
-}
-
-func TestCtrlClient_Device_ErrorPassesThroughElevationHint(t *testing.T) {
-	backendErr := errors.New("device not found")
-	backend := &fakeWgctrlBackend{
-		deviceFn: func(name string) (*wgtypes.Device, error) {
-			return nil, backendErr
-		},
-	}
-	c := &ctrlClient{c: backend}
-
-	_, err := c.Device(context.Background(), "testdev")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	// elevationHint only rewrites access-denied errors; every other error,
-	// including this one, must flow through unchanged.
-	if !errors.Is(err, backendErr) {
-		t.Errorf("Device error = %v, want it to wrap %v", err, backendErr)
-	}
-	if errors.Is(err, ErrElevationRequired) {
-		t.Errorf("ordinary error must not be marked ErrElevationRequired")
-	}
 }
 
 func TestCtrlClient_UpdatePeerEndpoint_ConfiguresDevice(t *testing.T) {

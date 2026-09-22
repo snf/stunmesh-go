@@ -1,5 +1,7 @@
 package pluginapi
 
+import "errors"
+
 // PluginConfig holds configuration for a plugin
 type PluginConfig map[string]interface{}
 
@@ -9,23 +11,22 @@ type PluginDefinition struct {
 	Config PluginConfig `mapstructure:",remain"`
 }
 
-// Exec Plugin Protocol
-
-const (
-	OpSet = "set"
-	OpGet = "get"
-)
-
-// ExecRequest is the JSON request format for exec plugins
-type ExecRequest struct {
-	Action string `json:"action"`
-	Key    string `json:"key"`
-	Value  string `json:"value,omitempty"`
-}
-
-// ExecResponse is the JSON response format for exec plugins
-type ExecResponse struct {
-	Success bool   `json:"success"`
-	Value   string `json:"value,omitempty"`
-	Error   string `json:"error,omitempty"`
+// ValidateDefinition is shared by file/mobile imports and the constructor.
+// This fork has one built-in store, not a process/plugin execution API.
+func ValidateDefinition(def PluginDefinition) error {
+	if def.Type != "builtin" || def.Config["name"] != "opendht" {
+		return errors.New("only built-in OpenDHT is supported")
+	}
+	for name, value := range def.Config {
+		switch name {
+		case "name", "endpoint", "endpoints", "timeout":
+		case "dedup":
+			if value != false {
+				return errors.New("OpenDHT publication dedup must be disabled")
+			}
+		default:
+			return errors.New("unsupported OpenDHT configuration field")
+		}
+	}
+	return nil
 }

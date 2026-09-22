@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/google/wire"
 	"github.com/rs/zerolog"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
 	"github.com/tjjh89017/stunmesh-go/internal/validation"
@@ -24,9 +23,6 @@ import (
 // *Config that setup() takes as a parameter, since Load's two string
 // arguments (configFile, configDir) can't be told apart by Wire's
 // type-based injection.
-var DefaultSet = wire.NewSet(
-	NewDeviceConfig,
-)
 
 // Defaults applied by Load when the config file omits the corresponding keys.
 const (
@@ -296,6 +292,11 @@ func validateConfigForGOOS(cfg *Config, goos string) error {
 			return err
 		}
 	}
+	for _, def := range cfg.Plugins {
+		if err := pluginapi.ValidateDefinition(def); err != nil {
+			return err
+		}
+	}
 	// Empty means unset, as it does for the protocol fields below; Load has
 	// already replaced it with the default on the path that reads a file.
 	if cfg.Log.Format != "" && !slices.Contains(LogFormats, cfg.Log.Format) {
@@ -330,9 +331,9 @@ func validateConfigForGOOS(cfg *Config, goos string) error {
 			return fmt.Errorf("invalid proxy fib %d for interface '%s', must be between 0 and 65535", iface.Proxy.Fib, ifaceName)
 		}
 
-		// Windows has no non-proxy mode; an explicit opt-out can't be honored.
-		if goos == "windows" && iface.Proxy.Enabled != nil && !*iface.Proxy.Enabled {
-			return fmt.Errorf("invalid proxy.enabled 'false' for interface '%s': Windows has no non-proxy mode", ifaceName)
+		// raw STUN mode was removed; shared UDP proxy is required; an explicit opt-out can't be honored.
+		if iface.Proxy.Enabled != nil && !*iface.Proxy.Enabled {
+			return fmt.Errorf("invalid proxy.enabled 'false' for interface '%s': raw STUN mode was removed; shared UDP proxy is required", ifaceName)
 		}
 
 		if iface.Protocol != "" {
