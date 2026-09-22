@@ -129,6 +129,8 @@ Syncthing is not running on the inspected NAS. Follow the [fresh three-device pl
 
 The [direct-access and service plan](../../DIRECT_ACCESS_AND_SYNC_PLAN.md) is the current preparation contract: one NAS-issued Linux profile, a dedicated host interface, exact service routes and managed aliases. Proposed VPN service addresses are `10.77.0.1` for NAS and `10.77.0.21`/`.23` for selected TCP services on the two additional LAN machines. NFS retirement is planned after checking existing clients; nothing is disabled during preparation.
 
+The plan also reserves `10.77.1.0/24` as a later mapped view of `192.168.0.0/24`, keeping those initial addresses. This requires separately reviewed forwarding/NAT inside the rootless NAS VPN namespace and an actual feasibility trial; it is not supplied by adding client routes alone.
+
 The released rootless configuration above still routes **only `10.77.0.1/32`**. It does not implement that later design. **Do not switch this Compose file to host networking unchanged:** its entrypoint creates `wg0` inside a disposable namespace and has no host cleanup contract. Keep using the existing SSH jump-host path for other machines while preparation continues; whole-subnet routing remains a separate design.
 
 Reference: [Podman 5.4 networking and rootless options](https://docs.podman.io/en/v5.4.1/markdown/podman-run.1.html#network-mode-net). Test evidence and remaining work are tracked in [CLIENT_PROGRESS.md](../../CLIENT_PROGRESS.md).
