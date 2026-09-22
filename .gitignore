@@ -50,3 +50,10 @@ contrib/*/stunmesh-*
 .powerloop/
 .plan
 tmp/
+
+# Locally assembled, allowlisted image/artifact inputs (never configuration).
+/build/image/
+/artifacts/
+*.aar
+*-sources.jar
+*.apk

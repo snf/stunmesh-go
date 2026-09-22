@@ -121,6 +121,8 @@ func (c *PublishController) publishToPeer(ctx, storeCtx context.Context, device 
 }
 
 func (c *PublishController) Execute(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
 	devices, err := c.devices.List(ctx)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("failed to list devices")
@@ -164,6 +166,8 @@ func (c *PublishController) Execute(ctx context.Context) {
 }
 
 func (c *PublishController) ExecuteForPeer(ctx context.Context, peerId entity.PeerId) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
 	// Find the specific peer
 	peer, err := c.peers.Find(ctx, peerId)
 	if err != nil {

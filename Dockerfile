@@ -1,30 +1,15 @@
-FROM --platform=$BUILDPLATFORM golang:latest AS builder
-
-ARG TARGETOS
-ARG TARGETARCH
-
-WORKDIR /work
-COPY . .
-
-# Build main application (cross-compile on build platform).
-# EMBED_CA=1: the final image is FROM scratch with no CA store, so HTTPS
-# plugins need the embedded Mozilla roots (inert when a CA volume is mounted).
-RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} make EMBED_CA=1
-
-# Build all plugins (cross-compile on build platform)
-RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} make plugin
-
+# Inputs are built/verified locally by scripts/prepare-image.py. No RUN, fetch,
+# repository-wide COPY, keys, configuration, provisioner or compiler in this image.
+# busybox + musl originate from the already approved Alpine manifest pinned in
+# build/inputs.json; only these two required files are retained.
 FROM scratch
-
-WORKDIR /app
-
-# Copy main application
-COPY --from=builder /work/stunmesh-go /app/stunmesh-go
-
-# Copy all plugins to /app (automatically includes any new plugins)
-COPY --from=builder /work/contrib/*/stunmesh-* /app/
-
-# Set PATH to include /app directory
-ENV PATH="/app:${PATH}"
-
-CMD ["/app/stunmesh-go"]
+COPY --chmod=0755 build/image/busybox /bin/busybox
+COPY --chmod=0755 build/image/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
+COPY --chmod=0755 build/image/wg /usr/local/bin/wg
+COPY --chmod=0755 build/image/stunmesh-go /usr/local/bin/stunmesh-go
+COPY --chmod=0755 deploy/entrypoint.sh /entrypoint.sh
+ENV PATH=/usr/local/bin:/bin
+# Namespace root is required to configure the kernel WG interface. Rootless
+# Podman maps it to its calling service user, never to host root.
+USER 0:0
+ENTRYPOINT ["/bin/busybox", "sh", "/entrypoint.sh"]

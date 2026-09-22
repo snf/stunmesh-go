@@ -12,8 +12,6 @@ import (
 	"github.com/tjjh89017/stunmesh-go/internal/repo"
 )
 
-// Injectors from wire.go:
-
 func setup(ctx context.Context, cfg *config.Config) (*daemon.Daemon, func(), error) {
 	deviceConfig := config.NewDeviceConfig(cfg)
 	zerologLogger := logger.NewLogger(cfg)
@@ -41,8 +39,6 @@ func setup(ctx context.Context, cfg *config.Config) (*daemon.Daemon, func(), err
 		cleanup()
 	}, nil
 }
-
-// wire.go:
 
 func providePluginManager(ctx context.Context, config2 *config.Config, logger2 *zerolog.Logger) (*plugin.Manager, func(), error) {
 	manager := plugin.NewManager()

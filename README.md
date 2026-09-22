@@ -1,186 +1,29 @@
-# stunmesh-go
+# STUNMESH — local OpenDHT/WireGuard fork
 
-STUNMESH is a WireGuard helper tool that establishes peer-to-peer connections through NAT — without any self-hosted coordination infrastructure.
+This home-use fork discovers endpoints behind NAT. **WireGuard authenticates peers and encrypts VPN traffic.** STUN and OpenDHT provide bounded, unauthenticated address hints; they cannot enroll a peer or change keys, PSKs or AllowedIPs. Public services can observe discovery metadata, poison hints or deny service. They do not relay established VPN traffic. Direct connectivity is still NAT-dependent; there is no relay fallback.
 
-It discovers each node's public IP and port via STUN, encrypts the endpoint with a Curve25519 sealed box, and shares it through a pluggable storage backend (Cloudflare DNS, OpenDHT, or your own script). Every node reads its peers' endpoints from the same storage and configures WireGuard accordingly. No rendezvous server, no relay, no VPS in the middle.
+The Android companion is `snf/stunmesh-android`, application ID `dev.stunmesh.local`. Both fork endpoints must use the new `stunmesh-hints-v2` namespace and version-2 public records. Upstream encrypted records are intentionally incompatible; there is no legacy fallback.
 
-Inspired by manuels' [wireguard-p2p](https://github.com/manuels/wireguard-p2p) project.
+## What remains
 
-**📖 Full documentation: [docs.stunmesh.dev](https://docs.stunmesh.dev)**
+- Container daemon for an existing kernel WireGuard interface, using the shared UDP proxy. No raw/pcap STUN, executable/shell/Cloudflare plugins or hosted release workflows.
+- Android core using official `wireguard-go` and the same UDP socket for STUN and WireGuard. Discovery never receives a private key or PSK. In-process WireGuard key use is required and accepted.
+- One-shot public provisioning tool; the phone generates its own private key. QR generation stays on the workstation.
 
-## Talks & Presentations
+The daemon's namespace `NET_ADMIN` authority can control its WG interface. This is a code-level separation of discovery from keys, not a sandbox around a compromised daemon. Pinning and isolation reduce supply-chain risk; they do not prove that upstream software or this fork has no vulnerabilities.
 
-- [FOSDEM 2026 - STUNMESH-go: Building P2P WireGuard Mesh Without Self-Hosted Infrastructure](https://fosdem.org/2026/schedule/event/YQWEDC-stunmesh-go_building_p2p_wireguard_mesh_without_self-hosted_infrastructure/)
-- [Slides](https://speakerdeck.com/tjjh89017/fosdem-2026-stunmesh-go-building-p2p-wireguard-mesh-without-self-hosted-infrastructure)
-- [Recording Video](https://video.fosdem.org/2026/h1302/YQWEDC-stunmesh-go_building_p2p_wireguard_mesh_without_self-hosted_infrastructure.av1.webm)
+## Build and run
 
-## NAT Type Support
+Follow [LOCAL_BUILD.md](LOCAL_BUILD.md) for pinned tools, isolated/offline tests, local AAR, image and separate APK signing. The `Dockerfile` is a **Podman** recipe. The minimal image contains the daemon, official `wg`, BusyBox/musl for interface setup, and a small reviewed entrypoint. It has no compiler, package manager, curl, QR library, source checkout or configuration.
 
-- ✅ **Full Cone NAT**, **Restricted Cone NAT**, **Port Restricted Cone NAT**: fully supported
-- ⚠️ **Symmetric NAT**: may be difficult to support due to unpredictable port mapping
+[deploy/README.md](deploy/README.md) documents the rootless trial arrangement and configuration conversion. Do not deploy the old upstream image and the new Android app together. Preserve the existing NAS encrypted-mount startup, service user/maps, Samba and NFS; Restic remains disabled. No firewall change is part of this implementation.
 
-For best results, ensure at least one peer is behind a cone NAT type.
+[PROVISIONING.md](PROVISIONING.md) covers public-only enrollment, optional PSK handling and recovery. [DEVICE_TESTS.md](DEVICE_TESTS.md) is the later NAS/GrapheneOS gate, including actual routing, backup, handover and battery tests. Building the APK is not evidence that these hardware checks passed.
 
-## Supported Platforms
+## Security record
 
-- **Linux** (amd64, arm, arm64, mipsle)
-- **macOS** (amd64, arm64)
-- **FreeBSD** (amd64, arm64) - requires `wireguard-tools`
-- **Windows** (amd64, arm64) - shipped as `stunmesh-windows-<arch>-<tag>.zip`, requires the official WireGuard for Windows client
-- **Android** - separate app, see [stunmesh-android](https://github.com/tjjh89017/stunmesh-android)
+- [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md): progress, commits and validation evidence.
+- [SECURITY_REMEDIATION_PLAN.md](SECURITY_REMEDIATION_PLAN.md): agreed decisions and finding mapping.
+- [SECURITY_AUDIT.md](SECURITY_AUDIT.md): original baseline audit, retained with its evidence. Findings describe the audited revision, not a claim that every old path remains in this fork.
 
-> [!IMPORTANT]
-> FreeBSD binaries use the `wgcli` backend, which invokes `wg(8)`. The base system ships the
-> `if_wg` kernel module but not that tool, so `pkg install wireguard-tools` is required.
-> See [Backend Selection](https://docs.stunmesh.dev/reference/build#backend-selection).
-
-> [!NOTE]
-> We only support wireguard-go in MacOS, Wireguard App store version is not supported because of sandbox currently.
-
-## Related Projects
-
-The stunmesh ecosystem spans several repositories:
-
-- [stunmesh-go](https://github.com/tjjh89017/stunmesh-go) - this repository, the core daemon and built-in plugins
-- [stunmesh-docs](https://github.com/tjjh89017/stunmesh-docs) - documentation site, published at [docs.stunmesh.dev](https://docs.stunmesh.dev)
-- [stunmesh-android](https://github.com/tjjh89017/stunmesh-android) - Android app
-- [stunmesh-provisioner](https://github.com/tjjh89017/stunmesh-provisioner) - provisioner and agent for managing stunmesh deployments
-- [stunmesh-openwrt](https://github.com/tjjh89017/stunmesh-openwrt) - OpenWrt package feed
-- [stunmesh-openwrt-firmware](https://github.com/tjjh89017/stunmesh-openwrt-firmware) - prebuilt OpenWrt firmware images with stunmesh included
-- [stunmesh-opnsense](https://github.com/tjjh89017/stunmesh-opnsense) - OPNsense plugin
-- [stunmesh-cla](https://github.com/tjjh89017/stunmesh-cla) - contributor license agreement
-
-## Quick Start
-
-Download a binary from the [releases page](https://github.com/tjjh89017/stunmesh-go/releases), or use the container image:
-
-```bash
-docker pull ghcr.io/tjjh89017/stunmesh
-```
-
-> [!WARNING]
-> The Docker Hub image (`tjjh89017/stunmesh`) is deprecated and will stop
-> receiving updates in a future release. Pull from `ghcr.io` instead.
-
-On Linux, macOS, and FreeBSD, stunmesh-go needs raw socket access, so run it as root next to an already-configured WireGuard interface (Windows differs — see [Windows](#windows) below):
-
-```bash
-sudo ./stunmesh-go
-```
-
-On Linux, instead of running as root you can grant just the two capabilities it needs:
-
-```bash
-setcap cap_net_admin,cap_net_raw+ep ./stunmesh-go
-```
-
-It runs as a daemon by default; pass `-oneshot` to publish and establish 3 times and then exit.
-
-Configuration is read from `/etc/stunmesh/config.yaml`, `~/.stunmesh/config.yaml`, or `./config.yaml` (`.yml` also works), or pass a file directly with `-c <file>`. A minimal two-node setup with the built-in Cloudflare plugin:
-
-```yaml
----
-refresh_interval: "1m"
-log:
-  level: "info"
-interfaces:
-  wg0:
-    peers:
-      "PEER_B":
-        public_key: "<PEER_B_PUBLIC_KEY_BASE64>"
-        plugin: cf
-stun:
-  addresses: ["stun.l.google.com:19302"]
-plugins:
-  cf:
-    type: builtin
-    name: cloudflare
-    zone: example.com
-    token: "<CLOUDFLARE_API_TOKEN>"
-    subdomain: wg
-```
-
-Run the same setup on the other node (with this node's public key), wait roughly two refresh intervals, and the tunnel comes up. Verify with `wg show` or by pinging the peer's tunnel address.
-
-> [!IMPORTANT]
-> stunmesh-go reads the WireGuard device's state once at startup — restart it after the
-> interface is recreated, the listen port or fwmark changes, or `config.yaml` is edited.
-> Under systemd, bind it to the WireGuard unit (`After=` + `BindsTo=`) so this is enforced
-> automatically. See [when stunmesh-go must be restarted](https://docs.stunmesh.dev/getting-started#when-stunmesh-go-must-be-restarted).
-
-### Windows
-
-Windows has no equivalent of the raw sockets (Linux) or pcap (macOS/BSD) stunmesh-go uses to share
-WireGuard's UDP port, so it instead runs a local UDP proxy that owns the public-facing socket, performs
-STUN on it, and relays WireGuard packets to per-peer loopback listeners. The official
-[WireGuard for Windows](https://www.wireguard.com/install/) client stays the data plane, and stunmesh-go
-rewrites each peer's endpoint to its loopback listener itself — there is nothing to change by hand in the
-tunnel.
-
-1. Install the official WireGuard for Windows client and create the tunnel.
-2. Activate the tunnel **before** starting stunmesh-go.
-3. Run stunmesh-go from an **Administrator** console. The WireGuard service requires the same privilege;
-   without it stunmesh-go fails at the first device access with a "run stunmesh as Administrator" error.
-
-The configuration file is unchanged from the other platforms and the proxy needs no configuration of its
-own; set `interfaces.<name>.proxy.listen` only if you need a fixed outer port for port forwarding or a
-port-based firewall.
-
-> [!IMPORTANT]
-> Deactivating and reactivating a tunnel in the WireGuard UI wipes the endpoints stunmesh-go set, because
-> the service re-applies the `.conf` file. Restart stunmesh-go after any tunnel toggle or restart.
-
-> [!NOTE]
-> ICMP ping monitoring is not implemented on Windows yet; stunmesh-go logs this and continues without it.
-
-### Full tunnel / restricted environments
-
-Linux, macOS, and FreeBSD can opt into the same UDP proxy Windows always uses by setting
-`interfaces.<name>.proxy.enabled: true` (default `false` on these platforms). This is required for
-full-tunnel setups on macOS and FreeBSD, and optional on Linux for restricted environments that lack
-`CAP_NET_RAW`. See [docs.stunmesh.dev](https://docs.stunmesh.dev/configuration/proxy) for the full-tunnel
-guide per platform.
-
-### Android
-
-Android is covered by a separate app, [stunmesh-android](https://github.com/tjjh89017/stunmesh-android),
-which embeds this project's STUN core alongside a userspace WireGuard implementation and runs as a
-VPN service — no root required. It is in early development: install by sideloading the universal APK
-from its [releases page](https://github.com/tjjh89017/stunmesh-android/releases). Only the built-in
-storage plugins are available there, and exempting the app from battery optimization is recommended
-for long-lived tunnels.
-
-## Documentation
-
-| Topic | Link |
-|---|---|
-| Getting started | [docs.stunmesh.dev/getting-started](https://docs.stunmesh.dev/getting-started) |
-| Configuration reference (protocols, STUN servers, ping monitoring) | [docs.stunmesh.dev/configuration/overview](https://docs.stunmesh.dev/configuration/overview) |
-| Storage plugins (built-in, exec, shell, dedup) | [docs.stunmesh.dev/plugins/overview](https://docs.stunmesh.dev/plugins/overview) |
-| Writing your own plugin | [docs.stunmesh.dev/plugins/exec-protocol](https://docs.stunmesh.dev/plugins/exec-protocol) |
-| Deployment guides (VyOS, macOS, OSPF/VRF) | [docs.stunmesh.dev/guides/vyos](https://docs.stunmesh.dev/guides/vyos) |
-| Building from source & backend selection | [docs.stunmesh.dev/reference/build](https://docs.stunmesh.dev/reference/build) |
-| Platform internals (fwmark, BPF capture, listen interfaces) | [docs.stunmesh.dev/reference/platform-internals](https://docs.stunmesh.dev/reference/platform-internals) |
-
-## Build
-
-```bash
-make all
-```
-
-> [!NOTE]
-> For FreeBSD and MacOS, please use GNU Makefile `gmake` to build.
-
-Build options (built-in plugin selection, binary minimization, WireGuard backend) are documented at [docs.stunmesh.dev/reference/build](https://docs.stunmesh.dev/reference/build). Contrib plugins live in [`contrib/`](contrib/) and are built with `make plugin`.
-
-## Future work / Roadmap
-
-- auto execute when routing engine notify change
-
-## License
-
-This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE) (LGPL-3.0) and [LICENSE.GPL](LICENSE.GPL) (GPL-3.0, which the LGPL supplements).
-
-Contributions are covered by the [CLA](https://github.com/tjjh89017/stunmesh-cla/blob/main/CLA.md).
-
-WireGuard is a registered trademark of Jason A. Donenfeld.
+Destination split routing is mandatory in the Android app: server /32 or /128 routes are preferred; bounded small service ranges are accepted. Ordinary phone internet and DNS use the underlay. Do not enable Android's “Block connections without VPN.” Routes select destinations, not individual ports/apps.

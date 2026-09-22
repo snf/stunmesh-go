@@ -7,10 +7,15 @@ Network is disabled unless --network is explicitly used to fetch pinned inputs.
 import argparse
 import os
 from pathlib import Path
+import io
+import subprocess
+import tarfile
+import tempfile
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--network', action='store_true')
 p.add_argument('--write-source', action='store_true')
+p.add_argument('--snapshot', action='store_true', help='build a writable archive of clean Git HEAD, leaving the checkout read-only')
 p.add_argument('--sdk-setup', action='store_true')
 p.add_argument('--repo', choices=('go', 'android'), default='go')
 p.add_argument('--net-admin', action='store_true')
@@ -23,6 +28,15 @@ build = Path(os.environ.get('STUNMESH_BUILD_ROOT', workspace / 'stunmesh-build')
 source = workspace / ('stunmesh-' + a.repo)
 for folder in ('cache', 'work', 'artifacts', 'tools'):
     (build / folder).mkdir(parents=True, exist_ok=True)
+if a.snapshot:
+    if a.write_source:
+        p.error('--snapshot and --write-source are mutually exclusive')
+    subprocess.run(['git', '-C', str(source), 'diff', '--quiet', 'HEAD'], check=True)
+    archive = subprocess.check_output(['git', '-C', str(source), 'archive', 'HEAD'])
+    snapshot = Path(tempfile.mkdtemp(prefix='source-' + a.repo + '-', dir=build / 'work'))
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        tar.extractall(snapshot, filter='data')
+    source = snapshot
 cmd = ['bwrap', '--unshare-all', '--die-with-parent', '--new-session', '--clearenv']
 if a.network:
     cmd += ['--share-net']
@@ -34,9 +48,12 @@ cmd += ['--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
 for path in ('/etc/ssl/certs', '/etc/resolv.conf', '/etc/hosts', '/etc/nsswitch.conf', '/etc/ld.so.cache', '/etc/alternatives', '/proc/cpuinfo', '/proc/meminfo', '/proc/stat'):
     if Path(path).exists():
         cmd += ['--ro-bind', path, path]
+passwd = build / 'work/sandbox-passwd'
+passwd.write_text('root:x:0:0:isolated build:/work/build-user:/bin/sh\ncore:x:1000:1000:isolated build:/work/build-user:/bin/sh\n')
+cmd += ['--ro-bind', str(passwd), '/etc/passwd']
 cmd += ['--ro-bind', str(build / 'tools'), '/tools', '--bind', str(build / 'cache'), '/cache',
         '--bind', str(build / 'work'), '/work', '--bind', str(build / 'artifacts'), '/artifacts',
-        '--bind' if a.write_source else '--ro-bind', str(source), '/src', '--chdir', '/src']
+        '--bind' if a.write_source or a.snapshot else '--ro-bind', str(source), '/src', '--chdir', '/src']
 if a.sdk_setup:
     cmd += ['--bind', str(build / 'tools/android-sdk'), '/tools/android-sdk']
 env = {

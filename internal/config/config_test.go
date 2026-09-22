@@ -657,15 +657,12 @@ func writeWeakTypingConfig(t *testing.T, configContent string) []string {
 	return []string{tmpDir}
 }
 
-// Quoted numeric scalar decodes into an int field.
+// Quoted numeric scalars cannot silently coerce to integer fields.
 func TestLoad_WeaklyTypedInput_QuotedIntScalar(t *testing.T) {
 	t.Parallel()
-	cfg, err := load("", "", writeWeakTypingConfig(t, "ping_monitor:\n  fixed_retries: \"7\"\n"))
-	if err != nil {
-		t.Fatalf("Load() error = %v, want nil", err)
-	}
-	if cfg.PingMonitor.FixedRetries != 7 {
-		t.Errorf("PingMonitor.FixedRetries = %d, want 7", cfg.PingMonitor.FixedRetries)
+	_, err := load("", "", writeWeakTypingConfig(t, "ping_monitor:\n  fixed_retries: \"7\"\n"))
+	if err == nil {
+		t.Fatal("implicit scalar type coercion accepted")
 	}
 }
 
@@ -700,7 +697,7 @@ func TestLoad_WeaklyTypedInput_CommaSeparatedStringToList(t *testing.T) {
 	}
 }
 
-// Quoted boolean scalar decodes into a bool field.
+// Quoted booleans cannot silently enable an option.
 func TestLoad_WeaklyTypedInput_QuotedBool(t *testing.T) {
 	t.Parallel()
 	paths := writeWeakTypingConfig(t, `
@@ -715,28 +712,18 @@ interfaces:
           target: "192.0.2.1"
 `)
 
-	cfg, err := load("", "", paths)
-	if err != nil {
-		t.Fatalf("Load() error = %v, want nil", err)
-	}
-	peer := cfg.Interfaces["wg0"].Peers["peer1"]
-	if peer.Ping == nil {
-		t.Fatal("peer1.Ping = nil, want non-nil")
-	}
-	if !peer.Ping.Enabled {
-		t.Error("peer1.Ping.Enabled = false, want true")
+	_, err := load("", "", paths)
+	if err == nil {
+		t.Fatal("implicit scalar type coercion accepted")
 	}
 }
 
-// Numeric scalar decodes into a string field.
+// Numeric values cannot silently coerce to log names.
 func TestLoad_WeaklyTypedInput_NumberToString(t *testing.T) {
 	t.Parallel()
-	cfg, err := load("", "", writeWeakTypingConfig(t, "log:\n  level: 5\n"))
-	if err != nil {
-		t.Fatalf("Load() error = %v, want nil", err)
-	}
-	if cfg.Log.Level != "5" {
-		t.Errorf("Log.Level = %q, want \"5\"", cfg.Log.Level)
+	_, err := load("", "", writeWeakTypingConfig(t, "log:\n  level: 5\n"))
+	if err == nil {
+		t.Fatal("implicit scalar type coercion accepted")
 	}
 }
 

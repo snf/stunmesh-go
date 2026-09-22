@@ -125,20 +125,14 @@ interfaces:
 	}
 }
 
-// Quoted scalar keeps loading, matching WeaklyTypedInput on other numeric fields.
+// Ports must be numeric YAML scalars; bools and strings cannot coerce to ports.
 func TestLoad_ProxyListen_QuotedScalar(t *testing.T) {
 	t.Parallel()
-	cfg := loadConfigFromYAML(t, `
-interfaces:
-  wg0:
-    proxy:
-      listen: "51999"
-    peers: {}
-`)
-
-	dc := NewDeviceConfig(cfg)
-	if got := dc.GetProxyListenPort("wg0"); got != 51999 {
-		t.Errorf("GetProxyListenPort(wg0) = %d, want 51999", got)
+	for _, value := range []string{`"51999"`, "true", "1.5"} {
+		_, err := load("", "", writeWeakTypingConfig(t, "interfaces:\n  wg0:\n    proxy:\n      listen: "+value+"\n    peers: {}\n"))
+		if err == nil {
+			t.Fatal("implicit proxy port coercion accepted")
+		}
 	}
 }
 

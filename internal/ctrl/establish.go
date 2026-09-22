@@ -25,6 +25,8 @@ type EstablishController struct {
 	mu            sync.Mutex
 	selection     map[entity.PeerId]*discovery.Selection
 	queue         *queue.Queue[entity.PeerId]
+	pendingMu     sync.Mutex
+	pending       map[entity.PeerId]bool
 }
 
 func NewEstablishController(ctrl WireGuardClient, devices DeviceRepository, peers PeerRepository, pluginManager PluginProvider, deviceConfig DeviceConfigProvider, logger *zerolog.Logger) *EstablishController {
@@ -37,10 +39,13 @@ func NewEstablishController(ctrl WireGuardClient, devices DeviceRepository, peer
 		logger:        logger.With().Str("controller", "establish").Logger(),
 		selection:     make(map[entity.PeerId]*discovery.Selection),
 		queue:         queue.NewBuffered[entity.PeerId](queue.PeerQueueSize),
+		pending:       make(map[entity.PeerId]bool),
 	}
 }
 
 func (c *EstablishController) Execute(ctx context.Context, peerId entity.PeerId) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -153,6 +158,9 @@ func (c *EstablishController) Run(ctx context.Context) {
 			return
 		case peerId := <-c.queue.Dequeue():
 			c.Execute(ctx, peerId)
+			c.pendingMu.Lock()
+			delete(c.pending, peerId)
+			c.pendingMu.Unlock()
 		}
 	}
 }
@@ -167,7 +175,7 @@ func (c *EstablishController) Trigger(ctx context.Context) {
 
 	enqueued := 0
 	for _, peer := range peers {
-		if c.queue.TryEnqueue(peer.Id()) {
+		if c.enqueue(peer.Id()) {
 			enqueued++
 		} else {
 			c.logger.Warn().Str("peer", peer.Id().PeerPublicKeyString()).Msg("queue full, peer dropped")
@@ -180,11 +188,26 @@ func (c *EstablishController) Trigger(ctx context.Context) {
 
 // TriggerForPeer enqueues a specific peer for establishment (non-blocking)
 func (c *EstablishController) TriggerForPeer(peerId entity.PeerId) {
-	if c.queue.TryEnqueue(peerId) {
+	if c.enqueue(peerId) {
 		c.logger.Debug().Str("peer", peerId.PeerPublicKeyString()).Msg("establish triggered for peer")
 	} else {
 		c.logger.Warn().Str("peer", peerId.PeerPublicKeyString()).Msg("establish queue full, dropping trigger for peer")
 	}
+}
+
+// One queued or active lookup per peer. Repeated timers/health triggers cannot
+// accumulate stale work while a proxy is unavailable.
+func (c *EstablishController) enqueue(id entity.PeerId) bool {
+	c.pendingMu.Lock()
+	defer c.pendingMu.Unlock()
+	if c.pending[id] {
+		return false
+	}
+	if !c.queue.TryEnqueue(id) {
+		return false
+	}
+	c.pending[id] = true
+	return true
 }
 
 // WaitForCompletion waits until the queue is empty or context is cancelled
@@ -197,7 +220,10 @@ func (c *EstablishController) WaitForCompletion(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if c.queue.Len() == 0 {
+			c.pendingMu.Lock()
+			empty := len(c.pending) == 0
+			c.pendingMu.Unlock()
+			if empty {
 				return
 			}
 		}

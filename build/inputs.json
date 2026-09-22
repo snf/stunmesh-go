@@ -1,0 +1,14 @@
+{
+  "alpine_source": "docker.io/library/alpine@sha256:1beb0dc0a51de7ff38e3b5274078a2e0b81113ba5c7535e1a03d5913a5edbda3",
+  "alpine_amd64_manifest": "sha256:1beb0dc0a51de7ff38e3b5274078a2e0b81113ba5c7535e1a03d5913a5edbda3",
+  "image_tools": {
+    "busybox": "f3547b3d78d08a028a4833ddb83b77cf012838c078bfd2b76355f53d1d8bba62",
+    "ld-musl-x86_64.so.1": "99eab0629ed5e6bc258bea735a128d1de30c5a8b52f39eed4919452d03c6c4ee"
+  },
+  "wireguard_tools": {
+    "version": "1.0.20260223",
+    "archive_sha256": "af459827b80bfd31b83b08077f4b5843acb7d18ad9a33a2ef532d3090f291fbf",
+    "signer_fingerprint": "AB9942E6D4A4CFC3412620A749FC7012A5DE03AE"
+  },
+  "audit_toolchain_manifest": "security-audit-evidence/build-toolchain-publisher-checksums.json"
+}

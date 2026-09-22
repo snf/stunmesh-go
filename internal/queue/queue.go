@@ -1,7 +1,7 @@
 package queue
 
 const (
-	TriggerQueueSize = 5   // Buffer size for simple trigger queues
+	TriggerQueueSize = 1   // Coalesce repeated refresh requests
 	PeerQueueSize    = 100 // Buffer size for peer-specific queues
 )
 

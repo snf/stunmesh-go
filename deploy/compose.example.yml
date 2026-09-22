@@ -1,0 +1,27 @@
+services:
+  vpn:
+    image: "${STUNMESH_IMAGE:?Set the verified local image digest}"
+    container_name: stunmesh-trial
+    network_mode: "pasta:--ipv4-only"
+    ports:
+      - "${TRIAL_BIND_IP:?Set the NAS LAN IPv4}:51820:51820/udp"
+    user: "0:0"
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    restart: "no"
+    pids_limit: 128
+    stop_grace_period: 15s
+    environment:
+      TUNNEL_ADDRESS: "10.77.0.1/32"
+      TUNNEL_ROUTES: "10.77.0.2/32"
+    volumes:
+      - type: bind
+        source: ./config
+        target: /config
+        read_only: true
+        bind: {create_host_path: false}
+    tmpfs:
+      - /run:rw,nosuid,nodev,noexec,size=4m,mode=755
+    logging: {driver: journald}

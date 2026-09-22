@@ -72,13 +72,9 @@ func (p *Proxy) IsEnabled(goos string) bool {
 type Interface struct {
 	Protocol string `mapstructure:"protocol"`
 	Proxy    Proxy  `mapstructure:"proxy"`
-	// ListenInterfaces restricts which underlay interfaces STUN discovery
-	// listens on (darwin/bsd only; Linux uses a system-wide raw socket and
-	// ignores it). Empty means "all eligible interfaces" -- the default.
+	// Legacy raw-socket options: retained for explicit compatibility warnings.
+	// The shared-socket proxy ignores these; do not use them for isolation.
 	ListenInterfaces []string `mapstructure:"listen_interfaces"`
-	// ListenDefaultRoute additionally listens on the default-route interface,
-	// resolved per-protocol (darwin/bsd only). Combined with ListenInterfaces
-	// as a union; the two are additive, not mutually exclusive.
 	ListenDefaultRoute bool            `mapstructure:"listen_default_route"`
 	Peers              map[string]Peer `mapstructure:"peers"`
 }
@@ -122,8 +118,7 @@ func (c *DeviceConfig) GetInterfaceProtocol(deviceName string) string {
 	return device.GetProtocol()
 }
 
-// GetListenConfig returns the interface's underlay-listen restriction for STUN
-// discovery; nil list + false means "listen on all" (darwin/bsd only).
+// GetListenConfig reports obsolete options so the proxy can warn when set.
 func (c *DeviceConfig) GetListenConfig(deviceName string) (interfaces []string, defaultRoute bool) {
 	device, ok := c.device(deviceName)
 	if !ok {

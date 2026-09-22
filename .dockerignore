@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!build/
+!build/image/
+!build/image/busybox
+!build/image/ld-musl-x86_64.so.1
+!build/image/wg
+!build/image/stunmesh-go
+!deploy/
+!deploy/entrypoint.sh
