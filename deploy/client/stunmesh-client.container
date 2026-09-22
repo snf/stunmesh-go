@@ -1,0 +1,35 @@
+# Rootless user Quadlet. Install under ~/.config/containers/systemd/.
+# Load the verified OCI image and provision the external config first.
+[Unit]
+Description=STUNMESH rootless WireGuard client
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Container]
+Image=sha256:470285618081f8b2ecb049f0b8280a815b9a7d88bbed2c6933ad1e7a34d7d8e8
+Pull=never
+ContainerName=stunmesh-client
+Network=pasta:--ipv4-only
+PublishPort=51830:51830/udp
+User=0
+Group=0
+DropCapability=all
+AddCapability=NET_ADMIN
+NoNewPrivileges=true
+ReadOnly=true
+PidsLimit=128
+StopTimeout=15
+Environment=TUNNEL_ADDRESS=10.77.0.254/32
+Environment=TUNNEL_ROUTES=10.77.0.1/32
+Volume=%h/.config/stunmesh/client:/config:ro
+Tmpfs=/run:rw,nosuid,nodev,noexec,size=4m,mode=755
+LogDriver=journald
+
+[Service]
+ExecStartPre=/usr/bin/test -r %h/.config/stunmesh/client/wg0.conf
+ExecStartPre=/usr/bin/test -r %h/.config/stunmesh/client/stunmesh.yml
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+
+# On-demand by default. See README.md for the optional login-start drop-in.

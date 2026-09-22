@@ -18,6 +18,8 @@ Follow [LOCAL_BUILD.md](LOCAL_BUILD.md) for pinned tools, isolated/offline tests
 
 [deploy/README.md](deploy/README.md) documents the rootless trial arrangement and configuration conversion. Do not deploy the old upstream image and the new Android app together. Preserve the existing NAS encrypted-mount startup, service user/maps, Samba and NFS; Restic remains disabled. No firewall change is part of this implementation.
 
+[deploy/client/README.md](deploy/client/README.md) provides the tested headless Linux client, plain Podman/Compose commands, and an on-demand rootless systemd/Quadlet service. The `linux-client-v0.1.0` prerelease includes the exact locally built Linux/amd64 OCI image; real configuration and credentials are never part of the release. Host applications currently use an explicit SSH proxy; direct host routing is the next stage.
+
 [PROVISIONING.md](PROVISIONING.md) covers public-only enrollment, optional PSK handling and recovery. [DEVICE_TESTS.md](DEVICE_TESTS.md) is the later NAS/GrapheneOS gate, including actual routing, backup, handover and battery tests. Building the APK is not evidence that these hardware checks passed.
 
 ## Security record

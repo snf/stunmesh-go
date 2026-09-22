@@ -34,3 +34,14 @@ Public IP addresses, peer public keys, proposal identifiers, certificate fingerp
 - Explicitly staged reviewed paths; checked the staged content for credential matches, APK checksum/signature identity and `git diff --cached --check`. No history rewrite, push or GitHub release publication.
 
 The review covers the local objects available at the listed snapshots and these packaging changes. It does not examine inaccessible remote history, prove absence of steganographic/obfuscated secrets, or replace the separate source/dependency audit. Any future real credential discovered in a commit must be treated as compromised and rotated; deleting the current file alone is insufficient.
+
+## Linux client publication review — 2026-09-22
+
+The owner requested publication under `operator` after confirming the laptop's rootless VPN connection. The outgoing Go branch and `linux-client-v0.1.0` image were rechecked before publication:
+
+- At parent `6532959`, scanned all 630 commits, 2,082 blobs, 1,878 trees and 14 tag objects locally available, plus 381 current tracked/nonignored files including the new service and release documentation. New final documentation/index content receives a separate staging check.
+- Verified the OCI archive SHA-256 and every OCI blob digest. Inspected metadata and every entry in its sole layer, including all five files: BusyBox, musl loader, `wg`, `stunmesh-go`, and entrypoint. The image has no mounted configuration, keys, compiler or source checkout. The release uploads only that unchanged OCI archive and its checksum file.
+- Added the fresh laptop's actual private key and PSK to the existing in-memory known-credential/encoding comparisons. **Zero known-credential matches, zero new unreviewed credential-pattern or 32-byte-base64 candidates, and no sensitive current/historical filenames.** The 19 pattern groups and 2,756 base64 groups also occur at previously reviewed immutable history locations; dispositions above remain applicable. No matched secret value is emitted or published.
+- Added ignore guards for real `wg*.conf`, `stunmesh.yml` and a client `config/` directory; placeholder `*.example` files remain tracked. The actual laptop config, enrollment material, ADB credentials, APK signing material and NAS private repository are not included in the GitHub upload. Android is unchanged by this publication.
+
+This finding is limited to the source/image publication. The separate NAS inventory incident in `CLIENT_PROGRESS.md` exposed Samba credentials in tool output; those still require rotation. No additional real credential leak was found in this publication review. Pattern matching and known-value comparisons cannot prove that an unknown or deliberately obfuscated secret is absent.

@@ -2,16 +2,31 @@
 
 The existing reviewed image already implements both WireGuard peers. The client uses the same five-file image as the NAS, a different private identity, and a read-only configuration directory. There is no UI, new daemon, proxy protocol, dependency or authentication scheme. WireGuard authenticates the peer; SSH and Samba retain their normal service authentication.
 
+For a new checkout, use the release tag rather than the fork's old upstream `main`:
+
+```sh
+git clone --branch linux-client-v0.1.0 https://github.com/snf/stunmesh-go.git
+cd stunmesh-go
+```
+
 ## Rootless first
 
 This stage gives **the client container** a VPN route to `10.77.0.1/32`. Normal laptop traffic and the host's routes/DNS are unchanged. Host applications can use `podman exec` or the SSH configuration below; this stage does not make the laptop a transparent LAN VPN client.
 
 Requirements: a Linux host with working rootless Podman, user/network namespaces, kernel WireGuard and a functioning `pasta` networking backend (including `/dev/net/tun`). Tested remotely with Podman 5.4.2. A restricted development container can prevent nested Podman operation even when `unshare --user --net` works; run these commands on the laptop host.
 
-The exact locally built image is in `stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar` next to this repository. Its SHA-256 is `8020acf13bae04463a09289615e7591653b84da3e84e04ca5c9e11878af11380`; see [build provenance](../../ARTIFACT_MANIFEST.json). Verify before loading:
+The exact locally built image is published as a Linux/amd64 OCI archive in [linux-client-v0.1.0](https://github.com/snf/stunmesh-go/releases/tag/linux-client-v0.1.0). It is also in `stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar` next to the original checkout. Its SHA-256 is `8020acf13bae04463a09289615e7591653b84da3e84e04ca5c9e11878af11380`; see [build provenance](../../ARTIFACT_MANIFEST.json). On another machine, download the versioned asset into the same external layout (skip this when the verified local archive already exists):
 
 ```sh
-sha256sum ../stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar
+gh release download linux-client-v0.1.0 --repo snf/stunmesh-go \
+  --pattern stunmesh-linux-amd64.oci.tar --pattern SHA256SUMS \
+  --dir ../stunmesh-build/artifacts/handover
+```
+
+Run from the Go repository root. Verify against the checksum committed in this checkout before loading:
+
+```sh
+(cd ../stunmesh-build/artifacts/handover && sha256sum -c -) < releases/SHA256SUMS
 podman load -i ../stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar
 export STUNMESH_IMAGE=sha256:470285618081f8b2ecb049f0b8280a815b9a7d88bbed2c6933ad1e7a34d7d8e8
 export STUNMESH_CONFIG=/absolute/path/to/private/client-config
@@ -44,6 +59,47 @@ podman exec stunmesh-client /bin/busybox ip route get 1.1.1.1
 The first route must use `wg0`; the second must use the normal container uplink. A running container or published discovery hint is not evidence of an authenticated tunnel; verify a fresh WG handshake and real service traffic. Rootless services normally need a logged-in user session or deliberately configured user lingering to survive logout; do not silently enable lingering during a trial.
 
 Stop with `podman stop stunmesh-client`; restart with `podman start stunmesh-client`. To remove only this client after stopping it, use `podman rm stunmesh-client`. Host routes stay unchanged and the private mounted configuration is retained. If you prefer Compose, the equivalent definition is `compose.yml` in this directory; use `podman-compose --in-pod=false -f deploy/client/compose.yml up -d` instead of the `podman run` command, with the same two exported variables.
+
+## Rootless systemd service
+
+The [Quadlet definition](stunmesh-client.container) runs the same image and networking configuration as the plain Podman command. Use Podman 5.4 or later with systemd and cgroup v2. Quadlet generates the service; there is no wrapper daemon, scheduled health check, image auto-update or background build. Process failures receive at most three startup attempts per five minutes, with ten seconds between attempts. Network recovery remains the existing daemon's responsibility. A running service is not proof of a WG handshake.
+
+Install it from the Go repository root as the same ordinary user that loaded the image. Set `STUNMESH_CONFIG` to the already-provisioned private directory; the original laptop uses `../stunmesh-laptop/config`. These commands copy the private files to a stable user configuration location outside Git. Do not use another device's identity or substitute the placeholder examples.
+
+```sh
+export STUNMESH_CONFIG="$(realpath ../stunmesh-laptop/config)"
+install -d -m 0700 "$HOME/.config/stunmesh" "$HOME/.config/stunmesh/client"
+install -m 0600 "$STUNMESH_CONFIG/wg0.conf" "$HOME/.config/stunmesh/client/wg0.conf"
+install -m 0600 "$STUNMESH_CONFIG/stunmesh.yml" "$HOME/.config/stunmesh/client/stunmesh.yml"
+install -d -m 0700 "$HOME/.config/containers/systemd"
+install -m 0644 deploy/client/stunmesh-client.container "$HOME/.config/containers/systemd/"
+```
+
+When replacing the existing manual trial, stop and remove **only its container** before starting the service. This briefly interrupts the VPN and retains the external private configuration:
+
+```sh
+podman stop stunmesh-client
+podman rm stunmesh-client
+systemctl --user daemon-reload
+systemctl --user start stunmesh-client.service
+systemctl --user status stunmesh-client.service
+podman exec stunmesh-client wg show wg0 latest-handshakes
+```
+
+For a fresh installation there is no old container to stop/remove. Thereafter manage it with `systemctl --user start|stop|restart stunmesh-client.service`; do not run the Compose/manual client at the same time. Existing `podman exec` SSH commands still work while the service runs. Quadlet removes its disposable container on stop; keys remain in the mounted directory. Failed config checks or repeated failures can be retried after correcting the cause with `systemctl --user reset-failed stunmesh-client.service` followed by `start`.
+
+The service is **on-demand by default**. To start it with the user session, deliberately add a drop-in; generated Quadlet services cannot be enabled using ordinary `systemctl enable`:
+
+```sh
+install -d -m 0700 "$HOME/.config/containers/systemd/stunmesh-client.container.d"
+cat > "$HOME/.config/containers/systemd/stunmesh-client.container.d/autostart.conf" <<'EOF'
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user daemon-reload
+```
+
+This does not enable user lingering; without an active user manager the rootless service does not run. To undo automatic startup, remove only that `autostart.conf` drop-in and reload the user manager. The Quadlet passes the Podman 5.4.2 generator and systemd unit validation; its first real laptop-managed start/stop/reboot is a separate check from the completed manual-container test. See the [official Quadlet documentation](https://docs.podman.io/en/v5.4.1/markdown/podman-systemd.unit.5.html).
 
 ## SSH from the laptop and onward to home machines
 
