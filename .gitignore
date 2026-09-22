@@ -76,3 +76,8 @@ signing.properties
 *-enrollment-v*.json
 *-enrollment-v*.svg
 /local-secrets/
+
+# Runtime WireGuard/client configurations are private, mounted from outside Git.
+wg*.conf
+stunmesh.yml
+/deploy/client/config/
