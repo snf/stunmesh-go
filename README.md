@@ -16,7 +16,7 @@ The daemon's namespace `NET_ADMIN` authority can control its WG interface. This 
 
 Follow [LOCAL_BUILD.md](LOCAL_BUILD.md) for pinned tools, isolated/offline tests, local AAR, image and separate APK signing. The `Dockerfile` is a **Podman** recipe. The minimal image contains the daemon, official `wg`, BusyBox/musl for interface setup, and a small reviewed entrypoint. It has no compiler, package manager, curl, QR library, source checkout or configuration.
 
-[deploy/README.md](deploy/README.md) documents the rootless trial arrangement and configuration conversion. Do not deploy the old upstream image and the new Android app together. Preserve the existing NAS encrypted-mount startup, service user/maps, Samba and NFS; Restic remains disabled. No firewall change is part of this implementation.
+[deploy/README.md](deploy/README.md) documents the rootless trial arrangement and configuration conversion. Do not deploy the old upstream image and the new Android app together. The current trial preserves the NAS encrypted-mount startup, service user/maps, Samba and NFS; Restic remains disabled. NFS retirement belongs to the subsequent preparation plan below. No firewall change is part of this implementation.
 
 [deploy/client/README.md](deploy/client/README.md) provides the tested headless Linux client, plain Podman/Compose commands, and an on-demand rootless systemd/Quadlet service. The `linux-client-v0.1.0` prerelease includes the exact locally built Linux/amd64 OCI image; real configuration and credentials are never part of the release. Host applications currently use an explicit SSH proxy; direct host routing is the next stage.
 
