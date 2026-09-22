@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
 	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
 	"github.com/tjjh89017/stunmesh-go/internal/mobilebind"
@@ -121,6 +120,10 @@ func (c *controller) stop() {
 
 func (c *controller) run(ctx context.Context) {
 	defer close(c.done)
+	if len(c.pluginDefs) == 0 {
+		<-ctx.Done()
+		return
+	}
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	failures := 0
@@ -129,6 +132,8 @@ func (c *controller) run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-c.changed:
+			_ = c.manager.Close()
+			c.pluginsReady = false
 			failures = 0
 			for _, s := range c.selection {
 				s.Reset()
@@ -173,10 +178,8 @@ func (c *controller) run(ctx context.Context) {
 func (c *controller) cycle(ctx context.Context) bool {
 	listener := c.node.listener
 
-	// Plugin init can need the network (e.g. a zone lookup), so it retries
-	// each cycle until it succeeds. This only protects the LoadPlugins call
-	// boundary -- factory ctors aren't ctx-threaded, so Store.Get/Set (via
-	// publish/establish's storeCtx) remain the real protected network path.
+	// OpenDHT construction performs no network I/O. Its protected client is
+	// replaced after underlay changes so pooled sockets cannot pin the old network.
 	if !c.pluginsReady {
 		loadCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
 		if err := c.manager.LoadPlugins(loadCtx, c.pluginDefs); err != nil {
@@ -188,27 +191,28 @@ func (c *controller) cycle(ctx context.Context) bool {
 
 	data, err := c.discover(ctx)
 	var local *entity.DeviceStatus
+	ok := err == nil
 	if err != nil {
 		listener.OnLog("warn", "discovery operation failed")
 	} else {
-		c.publish(ctx, data)
+		ok = c.publish(ctx, data)
 		local = &entity.DeviceStatus{IPv4: data.IPv4, IPv6: data.IPv6}
 	}
-	c.establish(ctx, local)
-	return err == nil && ctx.Err() == nil
+	established := c.establish(ctx, local)
+	return ok && established && ctx.Err() == nil
 }
 
 // discover resolves the reflexive addresses the interface protocol asks for,
 // trying each configured STUN server until one answers. The resolution and
-// dualstack partial-failure policy live in the shared ctrl.DiscoverEndpoints
+// dualstack partial-failure policy live in the shared discovery.DiscoverEndpoints
 // (internal/ctrl/discover.go), which also backs the desktop publish
 // controller: a single-family protocol errors out on that family's failure,
 // while dualstack tolerates one family failing as long as the other
 // succeeds, warning about the failed one instead of erroring.
-func (c *controller) discover(ctx context.Context) (ctrl.EndpointData, error) {
+func (c *controller) discover(ctx context.Context) (discovery.Record, error) {
 	listener := c.node.listener
 
-	resolve := func(network, family string) ctrl.FamilyResolver {
+	resolve := func(network, family string) discovery.FamilyResolver {
 		return func(ctx context.Context) (string, error) {
 			ep, err := c.discoverFamily(ctx, network)
 			if err != nil {
@@ -222,9 +226,9 @@ func (c *controller) discover(ctx context.Context) (ctrl.EndpointData, error) {
 		listener.OnLog("warn", family+" discovery unavailable")
 	}
 
-	var data ctrl.EndpointData
+	var data discovery.Record
 	var err error
-	data.IPv4, data.IPv6, err = ctrl.DiscoverEndpoints(ctx, c.cfg.Interface.Protocol, warn, resolve("udp4", "ipv4"), resolve("udp6", "ipv6"))
+	data.IPv4, data.IPv6, err = discovery.DiscoverEndpoints(ctx, c.cfg.Interface.Protocol, warn, resolve("udp4", "ipv4"), resolve("udp6", "ipv6"))
 	return data, err
 }
 
@@ -283,17 +287,22 @@ func (c *controller) resolveSTUN(ctx context.Context, network, server string) (n
 	return dialer.ResolveAddrPort(escaped, network, server)
 }
 
-func (c *controller) publish(ctx context.Context, data ctrl.EndpointData) {
+func (c *controller) publish(ctx context.Context, data discovery.Record) bool {
 	listener := c.node.listener
 	record, err := discovery.Encode(data)
 	if err != nil {
 		listener.OnLog("warn", "invalid local discovery result")
-		return
+		return false
 	}
 
+	ok := true
 	for _, peer := range c.cfg.Peers {
+		if peer.Plugin == "" {
+			continue
+		}
 		peerPub, err := keyToBytes(peer.PublicKey)
 		if err != nil {
+			ok = false
 			continue
 		}
 		peerId := entity.NewPeerId(c.pub[:], peerPub[:])
@@ -302,36 +311,45 @@ func (c *controller) publish(ctx context.Context, data ctrl.EndpointData) {
 		store, err := c.manager.GetPlugin(peer.Plugin)
 		if err != nil {
 			listener.OnLog("warn", "discovery operation failed")
+			ok = false
 			continue
 		}
 		storeCtx := protectedContext(ctx, c.node.protector, c.node.pluginDNSServers())
 		if err := store.Set(storeCtx, localId, record); err != nil {
 			listener.OnLog("warn", "discovery operation failed")
+			ok = false
 			continue
 		}
 		listener.OnEvent("publish_ok", peer.PublicKey, localId)
 	}
+	return ok
 }
 
 // establish validates and applies each peer's public endpoint hint. local is the
 // local host's own last STUN discovery result (nil if unknown or the last
-// discovery cycle failed), passed through to ctrl.SelectEndpoint so a
+// discovery cycle failed), passed through to discovery.SelectEndpoint so a
 // family the local host cannot reach is not selected.
-func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) {
+func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) bool {
 	listener := c.node.listener
 	health, err := c.node.peerHealth()
 	if err != nil {
-		return
+		return false
 	}
+	ok := true
 	for _, peer := range c.cfg.Peers {
+		if peer.Plugin == "" {
+			continue
+		}
 		peerPub, err := keyToBytes(peer.PublicKey)
 		if err != nil {
+			ok = false
 			continue
 		}
 		peerId := entity.NewPeerId(c.pub[:], peerPub[:])
 
 		store, err := c.manager.GetPlugin(peer.Plugin)
 		if err != nil {
+			ok = false
 			continue
 		}
 		selection := c.selection[peer.PublicKey]
@@ -341,6 +359,7 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 		}
 		status, exists := health[peer.PublicKey]
 		if !exists {
+			ok = false
 			continue
 		}
 		if selection.Working(status, time.Now()) {
@@ -351,6 +370,7 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 		records, err := store.Get(storeCtx, peerId.RemoteEndpointKey())
 		if err != nil || len(records) == 0 {
 			listener.OnLog("debug", "peer hint unavailable")
+			ok = false
 			continue
 		}
 		endpoints := []string{}
@@ -362,19 +382,25 @@ func (c *controller) establish(ctx context.Context, local *entity.DeviceStatus) 
 			if err != nil {
 				continue
 			}
-			endpoint, err := ctrl.SelectEndpoint(data, peer.Protocol, local)
+			endpoint, err := discovery.SelectEndpoint(data, peer.Protocol, local)
 			if err == nil && discovery.Allowed(endpoint, nil) {
 				endpoints = append(endpoints, endpoint)
 			}
 		}
 		endpoint := selection.Next(endpoints)
-		if endpoint == "" || endpoint == status.Endpoint {
+		if endpoint == "" {
+			ok = false
+			continue
+		}
+		if endpoint == status.Endpoint {
 			continue
 		}
 
 		if err := c.node.SetPeerEndpoint(peer.PublicKey, endpoint); err != nil {
 			listener.OnLog("error", "discovery operation failed")
+			ok = false
 			continue
 		}
 	}
+	return ok
 }

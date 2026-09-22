@@ -60,7 +60,7 @@ func (c *PublishController) discoverEndpoints(ctx context.Context, device *entit
 	// too, and the only one in the discovery path nothing else covers.
 	ctx = dialer.WithEscape(ctx, escapeFor(c.deviceConfig, device))
 
-	resolveFamily := func(family string) FamilyResolver {
+	resolveFamily := func(family string) discovery.FamilyResolver {
 		return func(ctx context.Context) (string, error) {
 			host, port, err := c.resolver.Resolve(ctx, string(device.Name()), uint16(device.ListenPort()), family, device.FirewallMark())
 			if err != nil {
@@ -74,7 +74,7 @@ func (c *PublishController) discoverEndpoints(ctx context.Context, device *entit
 		logger.Warn().Err(ferr).Msg("failed to resolve " + family + " address in dualstack mode")
 	}
 
-	ipv4Endpoint, ipv6Endpoint, err = DiscoverEndpoints(ctx, device.Protocol(), warn, resolveFamily("ipv4"), resolveFamily("ipv6"))
+	ipv4Endpoint, ipv6Endpoint, err = discovery.DiscoverEndpoints(ctx, device.Protocol(), warn, resolveFamily("ipv4"), resolveFamily("ipv6"))
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to discover endpoints")
 		return "", "", err

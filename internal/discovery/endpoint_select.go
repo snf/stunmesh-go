@@ -1,13 +1,11 @@
-package ctrl
+package discovery
 
 import (
 	"fmt"
-
-	"github.com/tjjh89017/stunmesh-go/internal/entity"
 )
 
-// SelectEndpoint applies the peer protocol preference to a decrypted
-// EndpointData record: "ipv4"/"ipv6" require that family and error when it
+// SelectEndpoint applies the peer protocol preference to a public
+// Record record: "ipv4"/"ipv6" require that family and error when it
 // is absent, "prefer_ipv4"/"prefer_ipv6" fall back to the other family, and
 // an empty protocol defaults to "ipv4" (config loading already applies this
 // default before an entity.Peer is constructed, so desktop callers never
@@ -15,22 +13,22 @@ import (
 // controller can).
 //
 // local is the local host's own last STUN discovery result (see
-// entity.DeviceStatus), used only by "prefer_ipv4"/"prefer_ipv6" to skip a
+// LocalStatus), used only by "prefer_ipv4"/"prefer_ipv6" to skip a
 // family the local host has no address for. local == nil means the local
 // capability is unknown, in which case the result matches pure protocol
 // preference exactly as before this parameter existed.
 //
 // Shared by EstablishController.Execute and the mobile controller so the
 // two callers can never drift on this rule again.
-func SelectEndpoint(data EndpointData, protocol string, local *entity.DeviceStatus) (string, error) {
-	usable := func(candidate string, localHas func(entity.DeviceStatus) bool) bool {
+func SelectEndpoint(data Record, protocol string, local *LocalStatus) (string, error) {
+	usable := func(candidate string, localHas func(LocalStatus) bool) bool {
 		if candidate == "" {
 			return false
 		}
 		return local == nil || localHas(*local)
 	}
-	hasIPv4 := func(s entity.DeviceStatus) bool { return s.IPv4 != "" }
-	hasIPv6 := func(s entity.DeviceStatus) bool { return s.IPv6 != "" }
+	hasIPv4 := func(s LocalStatus) bool { return s.IPv4 != "" }
+	hasIPv6 := func(s LocalStatus) bool { return s.IPv6 != "" }
 
 	switch protocol {
 	case "", "ipv4":

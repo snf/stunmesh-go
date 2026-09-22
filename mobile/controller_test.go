@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tjjh89017/stunmesh-go/internal/ctrl"
+	ctrl "github.com/tjjh89017/stunmesh-go/internal/discovery"
 )
 
 // TestSelectEndpoint mirrors the four-protocol matrix covered by
@@ -19,14 +19,14 @@ import (
 // mobile controller calls the same shared ctrl.SelectEndpoint the desktop
 // EstablishController uses (see internal/ctrl/endpoint_select.go).
 func TestSelectEndpoint(t *testing.T) {
-	both := ctrl.EndpointData{IPv4: "1.2.3.4:51820", IPv6: "[2001:db8::1]:51820"}
-	ipv4Only := ctrl.EndpointData{IPv4: "1.2.3.4:51820"}
-	ipv6Only := ctrl.EndpointData{IPv6: "[2001:db8::1]:51820"}
-	empty := ctrl.EndpointData{}
+	both := ctrl.Record{IPv4: "1.2.3.4:51820", IPv6: "[2001:db8::1]:51820"}
+	ipv4Only := ctrl.Record{IPv4: "1.2.3.4:51820"}
+	ipv6Only := ctrl.Record{IPv6: "[2001:db8::1]:51820"}
+	empty := ctrl.Record{}
 
 	tests := []struct {
 		name     string
-		data     ctrl.EndpointData
+		data     ctrl.Record
 		protocol string
 		want     string
 		wantErr  bool

@@ -2,17 +2,45 @@
 
 package mobile
 
-// SetUnderlay is called by Android's non-VPN network callback, including once
-// before Start. No discovery runs while offline. Family availability comes from
-// the selected network's LinkProperties, avoiding repeated impossible IPv6 probes.
-func (n *Node) SetUnderlay(online, ipv4, ipv6 bool) {
+import "errors"
+
+// SetUnderlay is driven by Android non-VPN callbacks. Offline closes WG sockets
+// and timers as well as suspending discovery. Handover rebinds outer sockets,
+// preserving the TUN and authorized peer configuration.
+func (n *Node) SetUnderlay(online, ipv4, ipv6, rebind bool) error {
+	n.lifecycle.Lock()
+	defer n.lifecycle.Unlock()
+	state := underlayState{online: online, ipv4: ipv4, ipv6: ipv6}
 	n.mu.Lock()
-	n.network = underlayState{online: online, ipv4: ipv4, ipv6: ipv6}
+	previous := n.network
+	n.network = state
 	c := n.ctrl
 	n.mu.Unlock()
 	if c != nil {
-		c.networkChanged(underlayState{online: online, ipv4: ipv4, ipv6: ipv6})
+		c.networkChanged(state)
 	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if n.dev == nil || !n.running {
+		return nil
+	}
+	var err error
+	if !online {
+		err = n.dev.Down()
+	} else if !previous.online {
+		err = n.dev.Up()
+	} else if rebind {
+		err = n.dev.BindUpdate()
+	}
+	if err != nil {
+		n.dev.Close()
+		go n.Stop()
+		return errors.New("underlay transition failed; device stopped")
+	}
+	if online && rebind {
+		n.dev.SendKeepalivesToPeersWithCurrentKeypair()
+	}
+	return nil
 }
 
 type underlayState struct{ online, ipv4, ipv6 bool }

@@ -1,0 +1,2 @@
+ok  	github.com/tjjh89017/stunmesh-go/mobile	9.286s
+ok  	github.com/tjjh89017/stunmesh-go/internal/mobilebind	(cached)
