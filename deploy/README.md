@@ -4,11 +4,13 @@ No NAS changes are made by the local build. The previously inspected arrangement
 
 The template uses the existing trial addresses: NAS `10.77.0.1/32`, phone `.2/32`, temporary VPS `.254/32`. The entrypoint permits only these explicit addresses plus the prior `.253/32` trial peer; change that public allowlist deliberately in Git if needed. The phone's destinations must match the selected server services.
 
-**Two different UDP ports are required:** kernel WG listens on `51822` inside the container; the shared proxy listens on `51820`. Publish only proxy port `51820/udp`. Using the same wildcard port for both cannot work. No `NET_RAW` is needed with this proxy implementation. Kernel WG creation requires `NET_ADMIN` in the owned network namespace; it does not grant host `NET_ADMIN` under rootless Podman.
+**Two different UDP ports are required:** kernel WG listens on `51824`; the shared STUN/WG proxy listens on `51826`. Publish both only on the NAS LAN address, with identical container/host port numbers. The phone's explicit LAN bootstrap endpoint is `NAS_LAN_IP:51824`; public discovery advertises the proxy socket. Using the same wildcard port for both cannot work. No `NET_RAW` is needed. Kernel WG creation requires `NET_ADMIN` in the owned network namespace; it does not grant host `NET_ADMIN` under rootless Podman.
+
+The real phone test found that sending LAN traffic to the proxy fails: its mapping contains the peer's STUN-discovered public endpoint, while LAN packets arrive from a private address. Direct kernel WG authenticates those packets and handles authenticated roaming; the discovery controllers preserve a healthy WG endpoint. This avoids adding LAN hint schemas or unauthenticated source-learning to the proxy. Keep this explicit LAN listener distinct from the external proxy path, which still requires carrier/NAT testing. Port translation also caused the first trial to advertise a different port from its LAN listener; preserve port numbers through Podman. No host firewall change is required for these LAN-bound mappings.
 
 Use the final image digest in `compose.example.yml`, not an upstream tag. Mount only a private configuration directory, read-only. No NAS data/share directory is required by discovery. Files remain owned by the existing service user; keep directory mode 0700 and key-bearing config 0600. Keep complete server configuration changes in the existing local private Git repository as requested; do not erase history. Never put a phone-generated private key in that repository.
 
-`wg0.conf` is a **wg setconf** file (not wg-quick), containing the server's existing private key, `ListenPort = 51822`, and each authorized phone public key with its exact tunnel address and optional separately provisioned PSK. `PersistentKeepalive = 25` enables hole punching while idle. It must not contain Address/DNS/PostUp/PostDown hooks. Startup adds the reviewed address/routes inside the container only; no host firewall/sysctl is changed.
+`wg0.conf` is a **wg setconf** file (not wg-quick), containing the server's existing private key, `ListenPort = 51824`, and each authorized phone public key with its exact tunnel address and optional PSK included in the confidential enrollment record. `PersistentKeepalive = 25` enables hole punching while idle. It must not contain Address/DNS/PostUp/PostDown hooks. Startup adds the reviewed address/routes inside the container only; no host firewall/sysctl is changed.
 
 Example **public discovery overlay**, replacing the placeholder phone public key with the reviewed public reply and supplying the chosen real HTTPS proxy/STUN origins:
 
@@ -17,7 +19,7 @@ refresh_interval: 180s
 interfaces:
   wg0:
     protocol: ipv4
-    proxy: {listen: 51820}
+    proxy: {listen: 51826}
     peers:
       phone:
         public_key: REPLACE_WITH_PHONE_PUBLIC_KEY

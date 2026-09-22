@@ -4,7 +4,10 @@ services:
     container_name: stunmesh-trial
     network_mode: "pasta:--ipv4-only"
     ports:
-      - "${TRIAL_BIND_IP:?Set the NAS LAN IPv4}:51820:51820/udp"
+      # Explicit LAN bootstrap, authenticated directly by kernel WireGuard.
+      - "${TRIAL_BIND_IP:?Set the NAS LAN IPv4}:51824:51824/udp"
+      # Shared STUN/WG proxy for discovery; preserve the same outer port.
+      - "${TRIAL_BIND_IP:?Set the NAS LAN IPv4}:51826:51826/udp"
     user: "0:0"
     cap_drop: [ALL]
     cap_add: [NET_ADMIN]
