@@ -57,3 +57,22 @@ tmp/
 *.aar
 *-sources.jar
 *.apk
+
+# Local signing, device-access and enrollment credentials.
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.key
+adbkey
+adbkey.pub
+adb_known_hosts.pb
+.env
+.env.*
+!.env.example
+password.txt
+keystore.properties
+signing.properties
+*-enrollment-v*.json
+*-enrollment-v*.svg
+/local-secrets/
