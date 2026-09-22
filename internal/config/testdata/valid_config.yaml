@@ -5,7 +5,7 @@ interfaces:
       listen: 51999
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
         protocol: ipv4
   wg1:
@@ -18,7 +18,7 @@ plugins:
     name: test
     key: value
 
-refresh_interval: 5m
+refresh_interval: 3m
 
 log:
   level: info

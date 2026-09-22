@@ -6,6 +6,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
+
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -55,14 +57,18 @@ func (cc *ctrlClient) Device(ctx context.Context, name string) (*DeviceInfo, err
 
 // UpdatePeerEndpoint ignores ctx: wgctrl has no context-aware API.
 func (cc *ctrlClient) UpdatePeerEndpoint(ctx context.Context, u PeerEndpointUpdate) error {
+	ep, err := validation.HostPort(u.Host, u.Port)
+	if err != nil {
+		return err
+	}
 	cfg := wgtypes.Config{
 		Peers: []wgtypes.PeerConfig{
 			{
 				PublicKey:  wgtypes.Key(u.PublicKey),
 				UpdateOnly: UpdateOnly,
 				Endpoint: &net.UDPAddr{
-					IP:   net.ParseIP(u.Host),
-					Port: u.Port,
+					IP:   net.IP(ep.Addr().AsSlice()),
+					Port: int(ep.Port()),
 				},
 			},
 		},

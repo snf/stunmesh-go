@@ -155,7 +155,7 @@ func TestCtrlClient_UpdatePeerEndpoint_ErrorPassesThroughElevationHint(t *testin
 	}
 	c := &ctrlClient{c: backend}
 
-	err := c.UpdatePeerEndpoint(context.Background(), PeerEndpointUpdate{DeviceName: "testdev"})
+	err := c.UpdatePeerEndpoint(context.Background(), PeerEndpointUpdate{DeviceName: "testdev", Host: "192.0.2.1", Port: 51820})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

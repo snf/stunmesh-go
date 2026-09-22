@@ -178,8 +178,8 @@ func TestParseConfig_DefaultsAppliedForMTUStunAndRefreshInterval(t *testing.T) {
 	if len(cfg.Stun.Addresses) != 1 || cfg.Stun.Addresses[0] != defaultStunServer {
 		t.Errorf("Stun.Addresses = %v, want [%q]", cfg.Stun.Addresses, defaultStunServer)
 	}
-	if cfg.RefreshIntervalSeconds != 600 {
-		t.Errorf("RefreshIntervalSeconds = %d, want default 600", cfg.RefreshIntervalSeconds)
+	if cfg.RefreshIntervalSeconds != 180 {
+		t.Errorf("RefreshIntervalSeconds = %d, want default 180", cfg.RefreshIntervalSeconds)
 	}
 }
 

@@ -210,12 +210,29 @@ func (n *Node) SetPeerEndpoint(publicKeyB64, endpoint string) error {
 	if !n.running {
 		return errors.New("node not running")
 	}
+	known := false
+	for _, peer := range n.cfg.Peers {
+		if peer.PublicKey == publicKeyB64 {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return errors.New("endpoint update requires an existing configured peer")
+	}
 	uapi, err := buildPeerEndpointUAPI(publicKeyB64, endpoint)
 	if err != nil {
 		return err
 	}
 	if err := n.dev.IpcSet(uapi); err != nil {
-		return fmt.Errorf("ipc set endpoint: %w", err)
+		// IpcSet is not transactional. Never continue forwarding after an
+		// unexpected mutation failure; a clean refresh cannot repair it.
+		n.dev.Close()
+		if n.ctrl != nil {
+			n.ctrl.cancel()
+		}
+		go n.Stop() // cannot wait for the controller while inside its cycle
+		return errors.New("endpoint update failed; device stopped")
 	}
 	n.listener.OnEvent("peer_endpoint_updated", publicKeyB64, endpoint)
 	return nil

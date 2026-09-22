@@ -3,15 +3,17 @@
 package mobile
 
 import (
-	"encoding/base64"
-	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"fmt"
+
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
 )
 
 // Config mirrors the JSON produced by the Android app (TunnelConfig.toJson).
 // Field names follow the stunmesh-go YAML config where a counterpart exists.
 type tunnelConfig struct {
+	ID                     string       `json:"id"`
 	Name                   string       `json:"name"`
 	Interface              ifaceConfig  `json:"interface"`
 	Peers                  []peerConfig `json:"peers"`
@@ -65,9 +67,9 @@ type logConfig struct {
 const defaultStunServer = "stun.l.google.com:19302"
 
 func parseConfig(configJSON string) (*tunnelConfig, error) {
-	var cfg tunnelConfig
-	if err := json.Unmarshal([]byte(configJSON), &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+	cfg := tunnelConfig{Interface: ifaceConfig{MTU: 1420}, RefreshIntervalSeconds: 180}
+	if err := validation.DecodeJSON([]byte(configJSON), &cfg); err != nil {
+		return nil, err
 	}
 	if cfg.Interface.PrivateKey == "" {
 		return nil, errors.New("interface.private_key is required")
@@ -75,10 +77,32 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 	if _, err := keyToHex(cfg.Interface.PrivateKey); err != nil {
 		return nil, fmt.Errorf("interface.private_key: %w", err)
 	}
+	if len(cfg.Peers) > validation.MaxPeers || len(cfg.Plugins) > validation.MaxStores || len(cfg.Stun.Addresses) > validation.MaxServers {
+		return nil, errors.New("too many peers, stores or STUN servers")
+	}
+	if cfg.RefreshIntervalSeconds < 1 || cfg.RefreshIntervalSeconds > 240 {
+		return nil, errors.New("refresh interval must be within 1–240 seconds")
+	}
+	if cfg.Interface.MTU < 1280 || cfg.Interface.MTU > 1500 {
+		return nil, errors.New("MTU must be within 1280–1500")
+	}
+	if len(cfg.Interface.Addresses) > validation.MaxRoutes || len(cfg.Interface.DNSServers) > validation.MaxServers {
+		return nil, errors.New("too many interface addresses or DNS servers")
+	}
+	for _, addr := range cfg.Interface.Addresses {
+		if _, err := validation.Prefix(addr); err != nil {
+			return nil, errors.New("invalid interface address")
+		}
+	}
+	seen := make(map[string]bool)
 	for i, p := range cfg.Peers {
-		if _, err := keyToHex(p.PublicKey); err != nil {
+		if _, err := validation.PublicKey(p.PublicKey); err != nil {
 			return nil, fmt.Errorf("peer %d public_key: %w", i, err)
 		}
+		if seen[p.PublicKey] {
+			return nil, errors.New("duplicate peer public key")
+		}
+		seen[p.PublicKey] = true
 		if p.PresharedKey != "" {
 			if _, err := keyToHex(p.PresharedKey); err != nil {
 				return nil, fmt.Errorf("peer %d preshared_key: %w", i, err)
@@ -89,7 +113,7 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 		switch cfg.Interface.Protocol {
 		case "ipv4", "ipv6", "dualstack":
 		default:
-			return nil, fmt.Errorf("invalid interface protocol %q, must be one of: ipv4, ipv6, dualstack", cfg.Interface.Protocol)
+			return nil, errors.New("invalid interface protocol")
 		}
 	}
 	for i, p := range cfg.Peers {
@@ -97,12 +121,9 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 			switch p.Protocol {
 			case "ipv4", "ipv6", "prefer_ipv4", "prefer_ipv6":
 			default:
-				return nil, fmt.Errorf("invalid protocol %q for peer %d, must be one of: ipv4, ipv6, prefer_ipv4, prefer_ipv6", p.Protocol, i)
+				return nil, fmt.Errorf("invalid protocol for peer %d", i)
 			}
 		}
-	}
-	if cfg.Interface.MTU <= 0 {
-		cfg.Interface.MTU = 1420
 	}
 	if cfg.Interface.Protocol == "" {
 		cfg.Interface.Protocol = "ipv4"
@@ -110,40 +131,27 @@ func parseConfig(configJSON string) (*tunnelConfig, error) {
 	if len(cfg.Stun.Addresses) == 0 {
 		cfg.Stun.Addresses = []string{defaultStunServer}
 	}
-	if cfg.RefreshIntervalSeconds <= 0 {
-		cfg.RefreshIntervalSeconds = 600
+	for _, server := range cfg.Stun.Addresses {
+		if err := validation.Server(server); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := buildUAPI(&cfg); err != nil {
+		return nil, err
 	}
 	return &cfg, nil
 }
 
 // keyToBytes decodes a base64 WG key into its 32-byte form.
 func keyToBytes(b64 string) ([32]byte, error) {
-	var out [32]byte
-	raw, err := base64.StdEncoding.DecodeString(b64)
-	if err != nil {
-		return out, fmt.Errorf("invalid base64: %w", err)
-	}
-	if len(raw) != 32 {
-		return out, fmt.Errorf("key must be 32 bytes, got %d", len(raw))
-	}
-	copy(out[:], raw)
-	return out, nil
+	return validation.Key(b64)
 }
 
 // keyToHex converts a base64 WG key to the hex form UAPI wants.
 func keyToHex(b64 string) (string, error) {
-	raw, err := base64.StdEncoding.DecodeString(b64)
+	raw, err := validation.Key(b64)
 	if err != nil {
-		return "", fmt.Errorf("invalid base64: %w", err)
+		return "", err
 	}
-	if len(raw) != 32 {
-		return "", fmt.Errorf("key must be 32 bytes, got %d", len(raw))
-	}
-	const hexDigits = "0123456789abcdef"
-	out := make([]byte, 64)
-	for i, b := range raw {
-		out[i*2] = hexDigits[b>>4]
-		out[i*2+1] = hexDigits[b&0xf]
-	}
-	return string(out), nil
+	return hex.EncodeToString(raw[:]), nil
 }

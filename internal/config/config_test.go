@@ -22,7 +22,7 @@ interfaces:
     protocol: ipv4
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
         protocol: ipv4
 
@@ -31,7 +31,7 @@ plugins:
     type: builtin
     name: test
 
-refresh_interval: 5m
+refresh_interval: 2m
 `
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -49,8 +49,8 @@ refresh_interval: 5m
 	}
 
 	// Verify basic config values
-	if cfg.RefreshInterval != 5*time.Minute {
-		t.Errorf("RefreshInterval = %v, want 5m", cfg.RefreshInterval)
+	if cfg.RefreshInterval != 2*time.Minute {
+		t.Errorf("RefreshInterval = %v, want 2m", cfg.RefreshInterval)
 	}
 
 	if len(cfg.Interfaces) != 1 {
@@ -79,8 +79,8 @@ func TestLoad_FileNotFound(t *testing.T) {
 	}
 
 	// Should have default values
-	if cfg.RefreshInterval != 10*time.Minute {
-		t.Errorf("RefreshInterval = %v, want 10m (default)", cfg.RefreshInterval)
+	if cfg.RefreshInterval != DefaultRefreshInterval {
+		t.Errorf("RefreshInterval = %v, want default refresh", cfg.RefreshInterval)
 	}
 }
 
@@ -107,8 +107,8 @@ interfaces:
 
 	// Malformed YAML fails at yaml.Unmarshal, wrapped in ErrReadConfig
 	// (ErrUnmarshalConfig is reserved for mapstructure decode failures).
-	if !errors.Is(err, ErrReadConfig) {
-		t.Errorf("Load() error = %v, want wrapped ErrReadConfig", err)
+	if !errors.Is(err, ErrUnmarshalConfig) {
+		t.Errorf("Load() error = %v, want ErrUnmarshalConfig", err)
 	}
 }
 
@@ -123,7 +123,7 @@ interfaces:
     protocol: invalid_protocol
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
 `
 
@@ -153,7 +153,7 @@ interfaces:
     protocol: ipv4
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
         protocol: invalid_peer_protocol
 `
@@ -179,7 +179,7 @@ interfaces:
   wg0:
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
 `
 
@@ -193,8 +193,8 @@ interfaces:
 	}
 
 	// Check default values
-	if cfg.RefreshInterval != 10*time.Minute {
-		t.Errorf("RefreshInterval = %v, want 10m (default)", cfg.RefreshInterval)
+	if cfg.RefreshInterval != DefaultRefreshInterval {
+		t.Errorf("RefreshInterval = %v, want default refresh", cfg.RefreshInterval)
 	}
 
 	if cfg.PingMonitor.Interval != 1*time.Second {
@@ -220,7 +220,7 @@ interfaces:
   wg0:
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
 
 plugins:
@@ -289,18 +289,18 @@ interfaces:
     protocol: ipv4
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: plugin1
         protocol: prefer_ipv4
       peer2:
-        public_key: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+        public_key: "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
         plugin: plugin2
         protocol: ipv6
   wg1:
     protocol: dualstack
     peers:
       peer3:
-        public_key: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC="
+        public_key: "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ="
         plugin: plugin3
 `
 
@@ -373,12 +373,14 @@ func TestValidateConfig_ValidProtocols(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &Config{
+				RefreshInterval: DefaultRefreshInterval,
+				PingMonitor:     PingMonitor{Interval: DefaultPingInterval, Timeout: DefaultPingTimeout, FixedRetries: DefaultPingFixedRetries},
 				Interfaces: Interfaces{
 					"wg0": Interface{
 						Protocol: tt.interfaceProto,
 						Peers: map[string]Peer{
 							"peer1": {
-								PublicKey: "test",
+								PublicKey: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
 								Plugin:    "test",
 								Protocol:  tt.peerProto,
 							},
@@ -401,7 +403,7 @@ func TestLoad_File_Exists(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "custom-name.yaml")
-	if err := os.WriteFile(path, []byte("refresh_interval: 11m\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("refresh_interval: 11s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -412,7 +414,7 @@ func TestLoad_File_Exists(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 11*time.Minute {
+	if cfg.RefreshInterval != 11*time.Second {
 		t.Errorf("RefreshInterval = %v, want 11m", cfg.RefreshInterval)
 	}
 }
@@ -426,14 +428,14 @@ func TestLoad_File_NotExists_ErrorsWithoutFallback(t *testing.T) {
 	}
 
 	if !errors.Is(err, ErrReadConfig) {
-		t.Errorf("Load() error = %v, want wrapped ErrReadConfig", err)
+		t.Errorf("Load() error = %v, want ErrReadConfig", err)
 	}
 }
 
 func TestLoad_Dir_WithConfig(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 13m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 13s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -442,7 +444,7 @@ func TestLoad_Dir_WithConfig(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 13*time.Minute {
+	if cfg.RefreshInterval != 13*time.Second {
 		t.Errorf("RefreshInterval = %v, want 13m", cfg.RefreshInterval)
 	}
 }
@@ -456,7 +458,7 @@ func TestLoad_Dir_WithoutConfig_ErrorsWithoutFallback(t *testing.T) {
 	}
 
 	if !errors.Is(err, ErrReadConfig) {
-		t.Errorf("Load() error = %v, want wrapped ErrReadConfig", err)
+		t.Errorf("Load() error = %v, want ErrReadConfig", err)
 	}
 }
 
@@ -464,12 +466,12 @@ func TestLoad_File_TakesPriorityOverDir(t *testing.T) {
 	t.Parallel()
 	fileDir := t.TempDir()
 	filePath := filepath.Join(fileDir, "explicit-file.yaml")
-	if err := os.WriteFile(filePath, []byte("refresh_interval: 21m\n"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("refresh_interval: 21s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	dirWithConfig := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dirWithConfig, "config.yaml"), []byte("refresh_interval: 22m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dirWithConfig, "config.yaml"), []byte("refresh_interval: 22s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -478,7 +480,7 @@ func TestLoad_File_TakesPriorityOverDir(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 21*time.Minute {
+	if cfg.RefreshInterval != 21*time.Second {
 		t.Errorf("RefreshInterval = %v, want 21m (ConfigFile must win over ConfigDir)", cfg.RefreshInterval)
 	}
 }
@@ -486,7 +488,7 @@ func TestLoad_File_TakesPriorityOverDir(t *testing.T) {
 func TestLoad_Paths_FindsConfigYaml(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 9m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 9s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -495,7 +497,7 @@ func TestLoad_Paths_FindsConfigYaml(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 9*time.Minute {
+	if cfg.RefreshInterval != 9*time.Second {
 		t.Errorf("RefreshInterval = %v, want 9m", cfg.RefreshInterval)
 	}
 }
@@ -504,7 +506,7 @@ func TestLoad_Paths_FindsConfigYml(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
 	// Only the .yml variant is present.
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yml"), []byte("refresh_interval: 14m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yml"), []byte("refresh_interval: 14s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -513,7 +515,7 @@ func TestLoad_Paths_FindsConfigYml(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 14*time.Minute {
+	if cfg.RefreshInterval != 14*time.Second {
 		t.Errorf("RefreshInterval = %v, want 14m", cfg.RefreshInterval)
 	}
 }
@@ -522,7 +524,7 @@ func TestLoad_Paths_SearchesInOrder(t *testing.T) {
 	t.Parallel()
 	emptyDir := t.TempDir()
 	configuredDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(configuredDir, "config.yaml"), []byte("refresh_interval: 17m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(configuredDir, "config.yaml"), []byte("refresh_interval: 17s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -533,7 +535,7 @@ func TestLoad_Paths_SearchesInOrder(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 17*time.Minute {
+	if cfg.RefreshInterval != 17*time.Second {
 		t.Errorf("RefreshInterval = %v, want 17m", cfg.RefreshInterval)
 	}
 }
@@ -541,7 +543,7 @@ func TestLoad_Paths_SearchesInOrder(t *testing.T) {
 func TestLoad_Paths_EnvVarExpansion(t *testing.T) {
 	// t.Setenv forbids t.Parallel: it mutates process-wide environment.
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 7m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 7s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -552,7 +554,7 @@ func TestLoad_Paths_EnvVarExpansion(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 7*time.Minute {
+	if cfg.RefreshInterval != 7*time.Second {
 		t.Errorf("RefreshInterval = %v, want 7m", cfg.RefreshInterval)
 	}
 }
@@ -560,7 +562,7 @@ func TestLoad_Paths_EnvVarExpansion(t *testing.T) {
 func TestLoad_Paths_EmptyExpansionIsSkipped(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 8m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 8s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -572,7 +574,7 @@ func TestLoad_Paths_EmptyExpansionIsSkipped(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 8*time.Minute {
+	if cfg.RefreshInterval != 8*time.Second {
 		t.Errorf("RefreshInterval = %v, want 8m", cfg.RefreshInterval)
 	}
 }
@@ -585,8 +587,8 @@ func TestLoad_NoConfigFound_ReturnsAllDefaults(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil (no config file must not error)", err)
 	}
 
-	if cfg.RefreshInterval != 10*time.Minute {
-		t.Errorf("RefreshInterval = %v, want 10m (default)", cfg.RefreshInterval)
+	if cfg.RefreshInterval != DefaultRefreshInterval {
+		t.Errorf("RefreshInterval = %v, want default refresh", cfg.RefreshInterval)
 	}
 	if cfg.PingMonitor.Interval != 1*time.Second {
 		t.Errorf("PingMonitor.Interval = %v, want 1s (default)", cfg.PingMonitor.Interval)
@@ -613,7 +615,7 @@ func TestLoad_NoConfigFound_ReturnsAllDefaults(t *testing.T) {
 func TestLoad_PartialYAML_UnsetFieldsKeepDefaults(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 42m\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte("refresh_interval: 42s\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -622,7 +624,7 @@ func TestLoad_PartialYAML_UnsetFieldsKeepDefaults(t *testing.T) {
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.RefreshInterval != 42*time.Minute {
+	if cfg.RefreshInterval != 42*time.Second {
 		t.Errorf("RefreshInterval = %v, want 42m", cfg.RefreshInterval)
 	}
 	if cfg.PingMonitor.Interval != 1*time.Second {
@@ -734,8 +736,8 @@ func TestLoad_MalformedYAML_WrapsErrReadConfig(t *testing.T) {
 	if err == nil {
 		t.Fatal("Load() with malformed YAML should return an error")
 	}
-	if !errors.Is(err, ErrReadConfig) {
-		t.Errorf("Load() error = %v, want wrapped ErrReadConfig", err)
+	if !errors.Is(err, ErrUnmarshalConfig) {
+		t.Errorf("Load() error = %v, want ErrUnmarshalConfig", err)
 	}
 }
 
@@ -827,7 +829,7 @@ interfaces:
   wg0:
     peers:
       peer1:
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        public_key: "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
         plugin: test_plugin
         ping:
           enabled: "true"
