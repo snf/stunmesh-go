@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tjjh89017/stunmesh-go/internal/discovery"
 	"github.com/tjjh89017/stunmesh-go/internal/mobilebind"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun/tuntest"
@@ -115,6 +116,53 @@ func TestWireGuardAloneAuthorizesDecryption(t *testing.T) {
 					}
 				case <-time.After(8 * time.Second):
 					t.Fatal("resume did not recover")
+				}
+
+				// Roaming must not discard the owner-configured bootstrap. An
+				// unavailable DHT cannot prevent local WG from recovering it.
+				n.cfg.Peers[0].Endpoint = "127.0.0.1:" + port
+				n.cfg.Peers[0].Plugin = "dht"
+				n.cfg.Peers[0].Protocol = "ipv4"
+				n.cfg.Plugins = []pluginDef{{Instance: "dht", Type: "builtin", Name: "opendht", Config: map[string]any{"endpoints": []string{"https://127.0.0.1:1"}, "timeout": "1s"}}}
+				c, err := newController(n, nil, a.PublicKey())
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = c.manager.Close() })
+				if err = c.manager.LoadPlugins(context.Background(), c.pluginDefs); err != nil {
+					t.Fatal(err)
+				}
+				if err = n.SetPeerEndpoint(b.PublicKey().String(), "127.0.0.1:1"); err != nil {
+					t.Fatal(err)
+				}
+				health, err := n.peerHealth()
+				if err != nil {
+					t.Fatal(err)
+				}
+				selection := &discovery.Selection{}
+				selection.Reset(health[b.PublicKey().String()])
+				c.selection[b.PublicKey().String()] = selection
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				if c.establish(ctx, nil) {
+					t.Fatal("applying an endpoint was mistaken for authenticated progress")
+				}
+				health, err = n.peerHealth()
+				if err != nil || health[b.PublicKey().String()].Endpoint != n.cfg.Peers[0].Endpoint {
+					t.Fatal("discovery outage prevented bootstrap retry")
+				}
+				select {
+				case ta.Outbound <- packet:
+				case <-time.After(time.Second):
+					t.Fatal("bootstrap retry stalled")
+				}
+				select {
+				case got := <-tb.Inbound:
+					if !bytes.Equal(got, packet) {
+						t.Fatal("bootstrap recovery changed authenticated data")
+					}
+				case <-time.After(8 * time.Second):
+					t.Fatal("bootstrap did not recover authenticated WG traffic")
 				}
 			}
 		})
