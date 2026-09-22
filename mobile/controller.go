@@ -135,8 +135,9 @@ func (c *controller) run(ctx context.Context) {
 			_ = c.manager.Close()
 			c.pluginsReady = false
 			failures = 0
-			for _, s := range c.selection {
-				s.Reset()
+			health, _ := c.node.peerHealth()
+			for key, s := range c.selection {
+				s.Reset(health[key])
 			}
 			// Coalesce a LinkProperties/capability burst into one cycle.
 			timer.Reset(time.Second)

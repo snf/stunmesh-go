@@ -12,15 +12,24 @@ type Health struct {
 // Selection is bounded per configured peer. No background health worker is
 // needed: sample WireGuard only during the ordinary discovery cycle.
 type Selection struct {
-	received uint64
-	next     uint64
+	received  uint64
+	handshake time.Time
+	observed  bool
+	next      uint64
 }
 
 func (s *Selection) Working(h Health, now time.Time) bool {
 	fresh := !h.Handshake.IsZero() && !h.Handshake.After(now) && now.Sub(h.Handshake) < 5*time.Minute
-	advanced := h.Received > s.received
+	// A historical handshake is not fresh evidence on every refresh. Preserve
+	// an endpoint when WG reports a new handshake or authenticated receive
+	// progress. The initial observation may use a recent handshake, but not a
+	// nonzero historical byte counter by itself.
+	handshook := fresh && (!s.observed || h.Handshake.After(s.handshake))
+	advanced := s.observed && h.Received > s.received
 	s.received = h.Received
-	return h.Endpoint != "" && (fresh || advanced)
+	s.handshake = h.Handshake
+	s.observed = true
+	return h.Endpoint != "" && !h.Handshake.IsZero() && !h.Handshake.After(now) && (handshook || advanced)
 }
 func (s *Selection) Next(endpoints []string) string {
 	if len(endpoints) == 0 {
@@ -33,4 +42,13 @@ func (s *Selection) Next(endpoints []string) string {
 	s.next++
 	return ep
 }
-func (s *Selection) Reset() { s.next = 0; s.received = 0 }
+
+// Reset records the WG counters at an underlay transition. Bytes/handshakes
+// accumulated on the previous network cannot keep its endpoint pinned; new
+// authenticated traffic can still preserve a session without a new handshake.
+func (s *Selection) Reset(h Health) {
+	s.next = 0
+	s.received = h.Received
+	s.handshake = h.Handshake
+	s.observed = true
+}
