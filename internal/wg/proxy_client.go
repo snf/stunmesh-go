@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/netip"
 	"runtime"
 
 	"github.com/rs/zerolog"
 	"github.com/tjjh89017/stunmesh-go/internal/routeprobe"
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
 	"github.com/tjjh89017/stunmesh-go/internal/wgproxy"
 )
 
@@ -82,14 +82,14 @@ func (c *proxyClient) Device(ctx context.Context, name string) (*DeviceInfo, err
 // with the endpoint replaced by the peer's loopback inner socket. A device
 // that opted out of proxy mode delegates the endpoint unchanged.
 func (c *proxyClient) UpdatePeerEndpoint(ctx context.Context, u PeerEndpointUpdate) error {
+	remote, err := validation.HostPort(u.Host, u.Port)
+	if err != nil {
+		return err
+	}
 	if !c.config.GetProxyEnabled(u.DeviceName, runtime.GOOS) {
 		return c.inner.UpdatePeerEndpoint(ctx, u)
 	}
 
-	addr, err := netip.ParseAddr(u.Host)
-	if err != nil {
-		return fmt.Errorf("wg: parse peer endpoint host %q: %w", u.Host, err)
-	}
 	proxy, err := c.ensureProxy(u.DeviceName)
 	if err != nil {
 		return err
@@ -98,7 +98,6 @@ func (c *proxyClient) UpdatePeerEndpoint(ctx context.Context, u PeerEndpointUpda
 	if err != nil {
 		return fmt.Errorf("wg: register peer with proxy: %w", err)
 	}
-	remote := netip.AddrPortFrom(addr, uint16(u.Port))
 	proxy.SetPeerEndpoint(u.PublicKey, remote)
 	c.logger.Debug().
 		Str("device", u.DeviceName).

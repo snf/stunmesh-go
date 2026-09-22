@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/wire"
 	"github.com/rs/zerolog"
 	"github.com/tjjh89017/stunmesh-go/internal/entity"
+	"github.com/tjjh89017/stunmesh-go/internal/validation"
 	pluginapi "github.com/tjjh89017/stunmesh-go/pluginapi"
 	"go.yaml.in/yaml/v3"
 )
@@ -28,7 +30,7 @@ var DefaultSet = wire.NewSet(
 
 // Defaults applied by Load when the config file omits the corresponding keys.
 const (
-	DefaultRefreshInterval  = 10 * time.Minute
+	DefaultRefreshInterval  = 3 * time.Minute
 	DefaultStunServer       = "stun.l.google.com:19302"
 	DefaultPingInterval     = 1 * time.Second
 	DefaultPingTimeout      = 1 * time.Second
@@ -192,16 +194,24 @@ func load(configFile, configDir string, paths []string) (*Config, error) {
 	}
 
 	if path != "" {
-		data, err := os.ReadFile(path)
+		file, err := os.Open(path)
 		if err != nil {
 			// Any read failure is fatal: explicit overrides must fail hard,
 			// and default-search paths already passed os.Stat.
 			return nil, errors.Join(ErrReadConfig, err)
 		}
+		data, err := io.ReadAll(io.LimitReader(file, validation.MaxConfigBytes+1))
+		_ = file.Close()
+		if err != nil || len(data) > validation.MaxConfigBytes {
+			return nil, ErrReadConfig
+		}
+		if err := validateYAML(data); err != nil {
+			return nil, err
+		}
 
 		var raw map[string]interface{}
 		if err := yaml.Unmarshal(data, &raw); err != nil {
-			return nil, errors.Join(ErrReadConfig, err)
+			return nil, ErrUnmarshalConfig
 		}
 
 		// Weakly typed input plus the duration and comma-separated-string-to-slice
@@ -212,14 +222,15 @@ func load(configFile, configDir string, paths []string) (*Config, error) {
 				mapstructure.StringToSliceHookFunc(","),
 			),
 			WeaklyTypedInput: true,
+			ErrorUnused:      true,
 			Result:           &cfg,
 		})
 		if err != nil {
-			return nil, errors.Join(ErrUnmarshalConfig, err)
+			return nil, ErrUnmarshalConfig
 		}
 
 		if err := decoder.Decode(raw); err != nil {
-			return nil, errors.Join(ErrUnmarshalConfig, err)
+			return nil, ErrUnmarshalConfig
 		}
 	}
 	// path == "": no config file found; proceed with defaults.
@@ -271,6 +282,20 @@ func validateConfig(cfg *Config) error {
 // the windows-only proxy.enabled rule is unit-testable from any platform.
 // validateConfig (the real entry point) always calls it with runtime.GOOS.
 func validateConfigForGOOS(cfg *Config, goos string) error {
+	if cfg.RefreshInterval <= 0 || cfg.RefreshInterval > 240*time.Second {
+		return errors.New("refresh_interval must be within 0–240 seconds (positive)")
+	}
+	if cfg.PingMonitor.Interval <= 0 || cfg.PingMonitor.Interval > 5*time.Minute || cfg.PingMonitor.Timeout <= 0 || cfg.PingMonitor.Timeout > time.Minute || cfg.PingMonitor.FixedRetries < 1 || cfg.PingMonitor.FixedRetries > 10 {
+		return errors.New("invalid ping monitor limits")
+	}
+	if len(cfg.Interfaces) > 8 || len(cfg.Plugins) > validation.MaxStores || len(cfg.Stun.Addresses) > validation.MaxServers {
+		return errors.New("configuration count limit exceeded")
+	}
+	for _, server := range cfg.Stun.Addresses {
+		if err := validation.Server(server); err != nil {
+			return err
+		}
+	}
 	// Empty means unset, as it does for the protocol fields below; Load has
 	// already replaced it with the default on the path that reads a file.
 	if cfg.Log.Format != "" && !slices.Contains(LogFormats, cfg.Log.Format) {
@@ -286,6 +311,12 @@ func validateConfigForGOOS(cfg *Config, goos string) error {
 	}
 
 	for ifaceName, iface := range cfg.Interfaces {
+		if len(ifaceName) > 15 || strings.ContainsAny(ifaceName, "\x00\r\n/ \t") {
+			return errors.New("invalid interface name")
+		}
+		if len(iface.Peers) > validation.MaxPeers {
+			return errors.New("too many interface peers")
+		}
 		// 0 means unset (ephemeral); reject anything outside the port range.
 		if iface.Proxy.Listen < 0 || iface.Proxy.Listen > 65535 {
 			return fmt.Errorf("invalid proxy listen port %d for interface '%s', must be between 0 and 65535", iface.Proxy.Listen, ifaceName)
@@ -313,6 +344,12 @@ func validateConfigForGOOS(cfg *Config, goos string) error {
 		}
 
 		for peerName, peer := range iface.Peers {
+			if _, err := validation.PublicKey(peer.PublicKey); err != nil {
+				return errors.New("invalid peer public_key")
+			}
+			if peer.Ping != nil && (peer.Ping.Interval < 0 || peer.Ping.Interval > 5*time.Minute || peer.Ping.Timeout < 0 || peer.Ping.Timeout > time.Minute) {
+				return errors.New("invalid peer ping limits")
+			}
 			if peer.Protocol != "" {
 				switch peer.Protocol {
 				case "ipv4", "ipv6", "prefer_ipv4", "prefer_ipv6":
@@ -324,4 +361,42 @@ func validateConfigForGOOS(cfg *Config, goos string) error {
 	}
 
 	return nil
+}
+
+// Validate the YAML node tree before handing values to mapstructure. In
+// particular, null/complex keys and aliases must never reach its map decoder.
+func validateYAML(data []byte) error {
+	var root yaml.Node
+	d := yaml.NewDecoder(strings.NewReader(string(data)))
+	if err := d.Decode(&root); err != nil {
+		return ErrUnmarshalConfig
+	}
+	var trailing yaml.Node
+	if err := d.Decode(&trailing); err != io.EOF {
+		return ErrUnmarshalConfig
+	}
+	var visit func(*yaml.Node, int) error
+	visit = func(n *yaml.Node, depth int) error {
+		if depth > 16 || n.Kind == yaml.AliasNode || n.Anchor != "" {
+			return ErrUnmarshalConfig
+		}
+		if n.Kind == yaml.MappingNode {
+			seen := make(map[string]bool)
+			for i := 0; i < len(n.Content); i += 2 {
+				k := n.Content[i]
+				name := strings.ToLower(k.Value)
+				if k.Kind != yaml.ScalarNode || k.Tag != "!!str" || seen[name] {
+					return ErrUnmarshalConfig
+				}
+				seen[name] = true
+			}
+		}
+		for _, child := range n.Content {
+			if err := visit(child, depth+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return visit(&root, 0)
 }

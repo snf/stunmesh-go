@@ -134,7 +134,7 @@ func TestLoad_BackwardCompat_AddressesOnly(t *testing.T) {
 func TestLoad_NeitherAddressNorAddresses(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	configContent := "refresh_interval: 5m\n"
+	configContent := "refresh_interval: 3m\n"
 	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestStunAddressesDecode_NilVsEmpty(t *testing.T) {
 		yaml    string
 		wantNil bool
 	}{
-		{"no stun block", "refresh_interval: 5m\n", true},
+		{"no stun block", "refresh_interval: 3m\n", true},
 		{"stun block without addresses key", "stun:\n  address: \"stun.example.com:3478\"\n", true},
 		{"explicit empty list", "stun:\n  addresses: []\n", false},
 	}

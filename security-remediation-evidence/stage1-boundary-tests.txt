@@ -1,0 +1,4 @@
+ok  	github.com/tjjh89017/stunmesh-go/internal/validation	(cached)
+ok  	github.com/tjjh89017/stunmesh-go/mobile	1.124s
+ok  	github.com/tjjh89017/stunmesh-go/internal/config	1.068s
+ok  	github.com/tjjh89017/stunmesh-go/internal/wg	(cached)
