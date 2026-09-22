@@ -27,3 +27,5 @@ Follow [LOCAL_BUILD.md](LOCAL_BUILD.md) for pinned tools, isolated/offline tests
 - [SECURITY_AUDIT.md](SECURITY_AUDIT.md): original baseline audit, retained with its evidence. Findings describe the audited revision, not a claim that every old path remains in this fork.
 
 Destination split routing is mandatory in the Android app: server /32 or /128 routes are preferred; bounded small service ranges are accepted. Ordinary phone internet and DNS use the underlay. Do not enable Android's “Block connections without VPN.” Routes select destinations, not individual ports/apps.
+
+[VALIDATION.md](VALIDATION.md) records local acceptance results and residual risks. [ARTIFACT_MANIFEST.json](ARTIFACT_MANIFEST.json) identifies the signed APK, image and exact inputs.
