@@ -1,4 +1,5 @@
-// Local public-only provisioning tool. Never included in the service image.
+// Local provisioning tool. A proposal may contain a PSK; replies are public.
+// Never included in the service image. Never accepts a phone private key.
 package main
 
 import (
@@ -16,7 +17,7 @@ import (
 func read(path string) ([]byte, error) {
 	f, e := os.Open(path)
 	if e != nil {
-		return nil, errors.New("cannot open public input")
+		return nil, errors.New("cannot open enrollment input")
 	}
 	defer f.Close()
 	b, e := io.ReadAll(io.LimitReader(f, provision.MaxBytes+1))
@@ -30,7 +31,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: provision new|reply [flags]; -h lists required public inputs")
+		return errors.New("usage: provision new|reply [flags]; -h lists required inputs")
 	}
 	f := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	if args[0] == "new" {
@@ -45,31 +46,50 @@ func run(args []string) error {
 		dht := f.String("opendht", "", "comma-separated HTTPS proxy origins")
 		f.StringVar(&p.Endpoint, "endpoint", "", "optional numeric static server endpoint")
 		f.StringVar(&p.Protocol, "protocol", "ipv4", "ipv4, ipv6, prefer_ipv4, prefer_ipv6")
-		f.BoolVar(&p.PSKRequired, "psk-required", false, "require separately supplied PSK; never put it in QR")
-		out := f.String("out", "", "new public JSON file; must not already exist")
+		pskFile := f.String("psk-file", "", "optional PSK file, or - for stdin; output/QR becomes confidential")
+		out := f.String("out", "", "new owner-private JSON file; must not already exist")
 		if err := f.Parse(args[1:]); err != nil {
 			return err
 		}
 		if f.NArg() != 0 || *out == "" {
-			return errors.New("specify --out and public inputs")
+			return errors.New("specify --out and enrollment inputs")
 		}
 		p.AllowedIPs = strings.Split(*routes, ",")
 		p.STUN = strings.Split(*stun, ",")
 		p.OpenDHT = strings.Split(*dht, ",")
+		if *pskFile != "" {
+			var input io.Reader = os.Stdin
+			if *pskFile != "-" {
+				file, err := os.Open(*pskFile)
+				if err != nil {
+					return errors.New("cannot open PSK input")
+				}
+				defer file.Close()
+				input = file
+			}
+			b, err := io.ReadAll(io.LimitReader(input, 65))
+			if err != nil {
+				return errors.New("cannot read PSK input")
+			}
+			p.PresharedKey = strings.TrimSuffix(strings.TrimSuffix(string(b), "\n"), "\r")
+			if p.PresharedKey == "" {
+				return errors.New("empty PSK input")
+			}
+		}
 		b, err := p.Encode()
 		if err != nil {
 			return err
 		}
 		file, err := os.OpenFile(*out, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if err != nil {
-			return errors.New("cannot create new public output")
+			return errors.New("cannot create new enrollment output")
 		}
 		_, err = file.Write(append(b, '\n'))
 		closeErr := file.Close()
 		return errors.Join(err, closeErr)
 	}
 	if args[0] == "reply" {
-		proposalFile := f.String("proposal", "", "original public proposal JSON")
+		proposalFile := f.String("proposal", "", "original proposal JSON (may contain a PSK)")
 		replyFile := f.String("reply", "", "public reply copied from the phone")
 		if err := f.Parse(args[1:]); err != nil {
 			return err
@@ -99,7 +119,7 @@ func run(args []string) error {
 			Reply       provision.Reply `json:"public_reply"`
 			PSKRequired bool            `json:"psk_required"`
 			Review      string          `json:"review"`
-		}{r, p.PSKRequired, "Compare phone/server public keys over your trusted local channel. Add PublicKey and this exact phone address to WG and the OpenDHT overlay in the server Git repository. If psk_required, supply the same PSK separately before activation."}, "", "  ")
+		}{r, p.PresharedKey != "", "Compare phone/server public keys over your trusted local channel. Add PublicKey and this exact phone address to WG and the OpenDHT overlay in the server Git repository. If the proposal includes a PSK, configure that same PSK on the server without exporting it in this public reply."}, "", "  ")
 		fmt.Println(string(b))
 		return nil
 	}
