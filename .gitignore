@@ -84,3 +84,8 @@ stunmesh.yml
 
 # Python helper bytecode; helpers use only the standard library.
 __pycache__/
+
+# Release assets and private execution records.
+*.oci.tar
+/device-test-evidence/
+/client-test-evidence/

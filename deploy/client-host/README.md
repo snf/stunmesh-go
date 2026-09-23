@@ -22,17 +22,17 @@ exposure; retrieve only the current canonical file. See the unresolved NAS/older
 [credential rotation](../../OPERATIONS.md#coordinated-rotation-not-yet-applied).
 
 ```sh
-git clone --branch linux-client-v0.2.0 https://github.com/snf/stunmesh-go.git
+git clone --branch v0.2.1 https://github.com/snf/stunmesh-go.git
 cd stunmesh-go
 install -d -m 0700 "$HOME/.config/stunmesh"
 (umask 077; scp operator@192.168.0.10:/srv/containers/stunmesh-audit-trial/issued/laptop.json \
   "$HOME/.config/stunmesh/laptop.json")
 
-curl -fL https://github.com/snf/stunmesh-go/releases/download/linux-client-v0.2.0/stunmesh-linux-client-v0.2.0.oci.tar \
-  -o /tmp/stunmesh-linux-client-v0.2.0.oci.tar
-printf '%s\n' 'afa228bc05e26577aa81c193ccba5dd66273d207c6fb0d9182a473bfcbddc2d4  /tmp/stunmesh-linux-client-v0.2.0.oci.tar' | sha256sum -c -
-podman load -i /tmp/stunmesh-linux-client-v0.2.0.oci.tar
-sudo podman load -i /tmp/stunmesh-linux-client-v0.2.0.oci.tar
+curl -fL https://github.com/snf/stunmesh-go/releases/download/v0.2.1/stunmesh-linux-amd64.oci.tar \
+  -o /tmp/stunmesh-linux-amd64.oci.tar
+printf '%s\n' 'afa228bc05e26577aa81c193ccba5dd66273d207c6fb0d9182a473bfcbddc2d4  /tmp/stunmesh-linux-amd64.oci.tar' | sha256sum -c -
+podman load -i /tmp/stunmesh-linux-amd64.oci.tar
+sudo podman load -i /tmp/stunmesh-linux-amd64.oci.tar
 ./scripts/vpn-client check --config "$HOME/.config/stunmesh/laptop.json"
 ```
 

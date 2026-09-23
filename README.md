@@ -1,3 +1,5 @@
+> **Owner fork:** download the reviewed container image from [GitHub Releases](RELEASES.md). Deployment files contain generic examples; supply private site configuration separately.
+
 # STUNMESH — local OpenDHT/WireGuard fork
 
 This home-use fork discovers endpoints behind NAT. **WireGuard authenticates peers and encrypts VPN traffic.** STUN and OpenDHT provide bounded, unauthenticated address hints; they cannot enroll a peer or change keys, PSKs or AllowedIPs. Public services can observe discovery metadata, poison hints or deny service. They do not relay established VPN traffic. Direct connectivity is still NAT-dependent; there is no relay fallback.
