@@ -1,0 +1,12 @@
+{
+  "approved": false,
+  "role": "laptop",
+  "config_root": "/ABSOLUTE/OWNER/PATH/.config/syncthing-v2",
+  "state_dir": "/ABSOLUTE/OWNER/PATH/.config/syncthing-v2/state",
+  "volume_record": "",
+  "enabled_folders": [],
+  "mounts": {
+    "/android-device/syncs": "/ABSOLUTE/OWNER/SHARED-DIRECTORY",
+    "/data/projects": "/ABSOLUTE/OWNER/PROJECTS-DIRECTORY"
+  }
+}

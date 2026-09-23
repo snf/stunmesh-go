@@ -13,12 +13,29 @@ import subprocess
 import sys
 import tempfile
 
-IMAGE = 'sha256:be3d90df55231ad09cdb4641d39c99410b7d876b64772c6320b044e6e861f3b9'
+IMAGE = 'sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb'
+
+class KeyQuotaError(RuntimeError): pass
 
 def run(args,data=None):
+    if args[0]=='podman-compose':
+        # Compose can otherwise wait forever for a dependency that failed to start.
+        args=['timeout','--kill-after=5s','90s',*args]
     r=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     if r.returncode: raise RuntimeError('operation failed: '+Path(args[0]).name+' '+args[1])
     return r.stdout
+
+def key_capacity():
+    used_keys=used_bytes=0
+    for row in Path('/proc/key-users').read_text().splitlines():
+        owner,values=row.split(':',1)
+        if int(owner)==os.getuid():
+            fields=values.split()
+            used_keys=int(fields[2].split('/')[0]);used_bytes=int(fields[3].split('/')[0])
+    maximum=int(Path('/proc/sys/kernel/keys/maxkeys').read_text())
+    byte_maximum=int(Path('/proc/sys/kernel/keys/maxbytes').read_text())
+    if maximum-used_keys<32 or byte_maximum-used_bytes<4096:
+        raise KeyQuotaError('insufficient keyring headroom')
 
 def container(command,data=None,mount=None,output=None,cap=False,shell=False):
     args=['podman','run','--rm','--pull=never','--network=none','--read-only','--log-driver=none',
@@ -69,6 +86,7 @@ def main():
     a=p.parse_args(); config=a.server_config.resolve(strict=True)
     if os.geteuid()==0: raise RuntimeError('run as the rootless NAS service user')
     if any(c in str(config) for c in ',\n:'): raise RuntimeError('unsafe mount path')
+    if a.restart_group: key_capacity()
     lockfd=os.open(config.parent/'.vpn-peer.lock',os.O_CREAT|os.O_WRONLY|os.O_NOFOLLOW,0o600)
     with os.fdopen(lockfd,'w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -114,13 +132,16 @@ def main():
             files={name:(candidate/name).read_bytes() for name in ['wg0.conf','stunmesh.yml']}
             container(['sh','-ec','/bin/busybox ip link add wg0 type wireguard; /usr/local/bin/wg setconf wg0 /config/wg0.conf; /usr/local/bin/stunmesh-go linux-config-check /config/stunmesh.yml'],mount=candidate,cap=True,shell=True)
             originals={name:(config/name).read_bytes() for name in files}
+            restart_attempted=False
             try:
                 for name,value in files.items(): atomic(config/name,value)
                 if a.restart_group:
+                    key_capacity()
+                    restart_attempted=True
                     run(['podman-compose','-f',str(config.parent/'compose.yml'),'up','-d','--force-recreate'])
             except BaseException:
                 for name,value in originals.items(): atomic(config/name,value)
-                if a.restart_group:
+                if restart_attempted:
                     try: run(['podman-compose','-f',str(config.parent/'compose.yml'),'up','-d','--force-recreate'])
                     except RuntimeError: print('Rollback files restored; Compose restart also failed. Use the LAN administration path.',file=sys.stderr)
                 raise
@@ -130,6 +151,9 @@ def main():
 
 if __name__=='__main__':
     try: main()
+    except KeyQuotaError:
+        print('vpn-peer: keyring count/byte quota has insufficient headroom; group recreation was refused. Review /proc/key-users before retrying.',file=sys.stderr)
+        sys.exit(1)
     except (OSError,RuntimeError,ValueError,KeyError):
         # Exception values may contain parser input. Deliberately no traceback.
         print('vpn-peer: refused or failed; check private paths, peer collisions, image and schema. No secret output.',file=sys.stderr)

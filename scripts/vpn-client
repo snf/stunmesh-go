@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 # Updated only with a verified, tested OCI build. Never supplied by the profile.
-IMAGE = "sha256:be3d90df55231ad09cdb4641d39c99410b7d876b64772c6320b044e6e861f3b9"
+IMAGE = "sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb"
 BASE = Path('/etc/stunmesh')
 HELPER = Path('/usr/local/libexec/stunmesh/vpn-client')
 QUADLET = Path('/etc/containers/systemd/stunmesh-host.container')

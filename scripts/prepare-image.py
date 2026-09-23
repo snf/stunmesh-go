@@ -14,8 +14,10 @@ import tarfile
 root=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--artifacts',type=Path,required=True)
-p.add_argument('--context',type=Path,required=True)
+p.add_argument('--context',type=Path)
+p.add_argument('--tools-only',action='store_true',help='verify/extract only BusyBox and musl for isolated kernel tests')
 a=p.parse_args()
+if not a.tools_only and a.context is None:p.error('--context is required unless --tools-only is selected')
 inputs=json.loads((root/'build/inputs.json').read_text())
 layout=a.artifacts/'alpine-base'
 def blob(digest):
@@ -37,6 +39,13 @@ for layer in manifest['layers']:
             retained[Path(name).name]=t.extractfile(member).read()
 for name,data in retained.items():
     if hashlib.sha256(data).hexdigest()!=inputs['image_tools'][name]:raise SystemExit('image tool hash mismatch')
+test_tools=a.artifacts/'image-tools'
+test_tools.mkdir(exist_ok=True)
+for name,data in retained.items():
+    path=test_tools/name;path.write_bytes(data);path.chmod(0o755)
+if a.tools_only:
+    print('Verified BusyBox/musl extracted for isolated tests')
+    raise SystemExit(0)
 if a.context.exists() and any(a.context.iterdir()):raise SystemExit('choose an empty new context directory')
 (a.context/'build/image').mkdir(parents=True,exist_ok=True)
 (a.context/'deploy').mkdir()

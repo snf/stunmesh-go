@@ -1,0 +1,18 @@
+# Preparation only. Apply after final directories/permissions are approved.
+# Merge these explicit binds into the existing private Samba service. Preserve
+# its image, userns mapping, existing fotos bind and credential arguments.
+# Append these existing image-native share arguments to that private command:
+#   -s projects:/share/projects:rw:operator
+#   -s android-device:/share/android-device:rw:operator
+# These personal shares default to operator only; existing fotos access is unchanged.
+services:
+  samba:
+    volumes:
+      - type: bind
+        source: /srv/data/projects
+        target: /share/projects
+        bind: {create_host_path: false}
+      - type: bind
+        source: /srv/data/device-backups/android-device
+        target: /share/android-device
+        bind: {create_host_path: false}

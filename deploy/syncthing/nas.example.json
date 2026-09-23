@@ -1,5 +1,6 @@
 {
   "approved": false,
+  "role": "nas",
   "config_root": "/srv/syncthing-v2",
   "state_dir": "/srv/data/.service-state/syncthing-v2",
   "volume_record": "/srv/containers/service-tools/volume.json",

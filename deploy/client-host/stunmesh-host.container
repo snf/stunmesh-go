@@ -7,7 +7,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=3
 
 [Container]
-Image=sha256:ad1b1f474b52b203fb42a64e016e822687e91b41c04707e5c083e97ad060db4e
+Image=sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb
 Pull=never
 ContainerName=stunmesh-host
 Network=host
@@ -18,11 +18,14 @@ NoNewPrivileges=true
 ReadOnly=true
 PidsLimit=128
 Volume=/etc/stunmesh/laptop.json:/config/laptop.json:ro
+Volume=/run/stunmesh-host:/ownership:rw
 Tmpfs=/run:rw,nosuid,nodev,noexec,size=4m,mode=755
 Entrypoint=/usr/local/bin/stunmesh-go
-Exec=linux-run /config/laptop.json
+Exec=linux-run-owned /config/laptop.json
 
 [Service]
+RuntimeDirectory=stunmesh-host
+RuntimeDirectoryMode=0700
 ExecStartPre=/usr/local/libexec/stunmesh/vpn-client preflight
 ExecStopPost=/usr/local/libexec/stunmesh/vpn-client cleanup
 Restart=on-failure

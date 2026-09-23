@@ -136,6 +136,7 @@ def main():
                 raise RuntimeError('supply --role and all three public ID files')
             ids={peer:identity(getattr(a,peer+'_id').read_text()) for peer in ('nas','laptop','android')}
             tree=pair(tree,a.role,identity((root/'device-id.txt').read_text()),ids)
+            atomic(root/'peer-ids.json',(json.dumps(ids,indent=2)+'\n').encode())
         save(path,tree)
         if a.action=='start':
             if not 1024<=a.port<=65535: raise RuntimeError('GUI port outside allowed range')

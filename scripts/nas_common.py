@@ -55,3 +55,12 @@ def inactive(paths):
             source=Path(mount.get('Source','/nonexistent')).resolve()
             if any(source==p.resolve() or source in p.resolve().parents or p.resolve() in source.parents for p in paths):
                 raise RuntimeError('a running container already uses this configuration/state')
+
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description='Verify an unlocked volume and paths before creating service data')
+    parser.add_argument('volume_record',type=Path)
+    parser.add_argument('paths',nargs='+',type=Path)
+    args=parser.parse_args()
+    volume_guard(args.volume_record,args.paths)
+    print('Expected filesystem and resolved paths verified; no directories created')

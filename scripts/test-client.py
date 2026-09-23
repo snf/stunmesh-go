@@ -50,5 +50,17 @@ class Hosts(unittest.TestCase):
         args=execute.call_args.args[0]
         self.assertIn('--log-driver=none',args)
         self.assertIn('type=bind,src=/private/temporary,dst=/output,rw',args)
+    def test_low_key_quota_refuses_group_restart(self):
+        def read(path):
+            if path.name=='maxkeys':return '512'
+            if path.name=='maxbytes':return '20000'
+            return '1000: 512 512/512 512/512 12182/20000\n'
+        with patch.object(Path,'read_text',read),patch.object(peer.os,'getuid',return_value=1000):
+            with self.assertRaises(RuntimeError):peer.key_capacity()
+        def ample(path):
+            if path.name=='maxkeys':return '1024'
+            return read(path)
+        with patch.object(Path,'read_text',ample),patch.object(peer.os,'getuid',return_value=1000):
+            peer.key_capacity()
 
 if __name__=='__main__': unittest.main()

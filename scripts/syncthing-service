@@ -15,28 +15,42 @@ admin=importlib.util.module_from_spec(spec);loader.exec_module(admin)
 NAME='syncthing-v2'
 
 def validate(settings):
-    if set(settings)!={'approved','config_root','state_dir','volume_record','enabled_folders','mounts'} or settings['approved'] is not True:
+    if set(settings)!={'approved','role','config_root','state_dir','volume_record','enabled_folders','mounts'} or settings['approved'] is not True:
         raise RuntimeError('production remains disabled until the owner approves the directory/identity manifest')
+    role=settings['role']
+    if role not in ('nas','laptop'): raise RuntimeError('choose the explicit nas/laptop role')
     if not isinstance(settings['enabled_folders'],list) or not settings['enabled_folders'] or len(set(settings['enabled_folders']))!=len(settings['enabled_folders']):
         raise RuntimeError('select nonempty, distinct folder IDs to activate')
-    if set(settings['mounts'])!={'/android-device','/data/projects'}:
-        raise RuntimeError('reviewed mount targets are /android-device and /data/projects')
+    if set(settings['mounts'])!=({'/android-device','/data/projects'} if role=='nas' else {'/android-device/syncs','/data/projects'}):
+        raise RuntimeError('mount targets differ from the reviewed role template')
     root=Path(settings['config_root']);state=Path(settings['state_dir'])
-    volume_guard(settings['volume_record'],[state]+list(settings['mounts'].values()))
+    if role=='nas' or settings['volume_record']:
+        volume_guard(settings['volume_record'],[state]+list(settings['mounts'].values()))
     inactive([root/'config',state])
     tree=admin.harden(admin.load_xml(root/'config/config.xml'))
-    expected={p:admin.identity((root/(p+'-device-id.txt' if p!='nas' else 'device-id.txt')).read_text()) for p in ('nas','laptop','android')}
-    if len(set(expected.values()))!=3 or set(d.get('id') for d in tree.findall('device'))!=set(expected.values()):
-        raise RuntimeError('production must contain exactly the three recorded fresh identities')
+    expected=json.loads((root/'peer-ids.json').read_text())
+    if set(expected)!={'nas','laptop','android'} or len(set(expected.values()))!=3:
+        raise RuntimeError('pair the three distinct public IDs before production')
+    expected={p:admin.identity(value) for p,value in expected.items()}
+    own=admin.identity((root/'device-id.txt').read_text())
+    peers=set(expected) if role=='nas' else {'nas','laptop'}
+    if expected[role]!=own or set(d.get('id') for d in tree.findall('device'))!={expected[p] for p in peers}:
+        raise RuntimeError('native device inventory differs from the paired role')
     folders={f.get('id'):f for f in tree.findall('folder')}
-    if set(folders)!={'shared','projects','android-camera'} or not set(settings['enabled_folders'])<=set(folders):
+    layout={'shared':('/android-device/syncs','sendreceive',peers),'projects':('/data/projects','sendreceive',{'nas','laptop'})}
+    if role=='nas': layout['android-camera']=('/android-device/dcim','receiveonly',{'nas','android'})
+    if set(folders)!=set(layout) or not set(settings['enabled_folders'])<=set(folders):
         raise RuntimeError('unexpected folder inventory')
+    for fid,folder in folders.items():
+        path,mode,members=layout[fid]
+        if folder.get('path')!=path or folder.get('type')!=mode or set(d.get('id') for d in folder.findall('device'))!={expected[p] for p in members}:
+            raise RuntimeError('folder path, direction or peer membership differs from approved layout')
     for fid in settings['enabled_folders']:
         folder=folders[fid];inside=Path(folder.get('path',''))
         matches=[(target,source) for target,source in settings['mounts'].items() if inside==Path(target) or Path(target) in inside.parents]
         if len(matches)!=1: raise RuntimeError('folder has no unique bind mount')
         target,source=matches[0];host=Path(source)/inside.relative_to(target)
-        volume_guard(settings['volume_record'],[host])
+        if role=='nas' or settings['volume_record']: volume_guard(settings['volume_record'],[host])
         if not host.is_dir() or not (host/'.stfolder').is_dir():
             raise RuntimeError('approved source and its .stfolder marker must exist; no auto-creation')
         if not os.access(host,os.R_OK|os.W_OK|os.X_OK): raise RuntimeError('service user cannot access source')
@@ -52,13 +66,13 @@ def main():
     if a.action=='stop':
         run(['podman','stop','--time','30',NAME]);print('Stopped');return
     settings=json.loads(a.manifest.read_text());root,state,tree=validate(settings)
-    args=['podman','run','-d','--name',NAME,'--network=pasta:--ipv4-only','--group-add=keep-groups',
-          '-p','192.168.0.10:22000:22000/tcp','-p','127.0.0.1:22000:22000/tcp']+admin.args_for(root,state)
+    args=['podman','run','-d','--name',NAME,'--network=pasta:--ipv4-only','--group-add=keep-groups']+admin.args_for(root,state)
+    if settings['role']=='nas': args+=['-p','192.168.0.10:22000:22000/tcp','-p','127.0.0.1:22000:22000/tcp']
     for target,source in settings['mounts'].items(): args+=['--mount',mount_argument(source,target)]
     if a.action=='check': print('Volume, identities, selected folders and host-user access checked. Verify container UID/GID/ACL views before first activation.');return
     admin.save(root/'config/config.xml',tree)
     run(args+[admin.IMAGE,'serve','--config=/config','--data=/state','--no-browser','--no-restart'])
-    print('Started selected folders with LAN/loopback TCP 22000 only. GUI remains disabled.')
+    print('Started selected folders. NAS publishes LAN/loopback TCP 22000; laptop publishes no ports. GUI disabled.')
 
 if __name__=='__main__':
     try: main()

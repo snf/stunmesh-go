@@ -27,12 +27,19 @@ The original publisher checksum records remain in `security-audit-evidence/build
 Run in the Go checkout, with pinned inputs already populated:
 
 ```sh
+python3 scripts/prepare-image.py --artifacts ../stunmesh-build/artifacts --tools-only
 python3 scripts/sandbox.py --net-admin -- make test
 python3 scripts/sandbox.py -- make vet
 python3 scripts/sandbox.py -- go mod verify
 python3 scripts/sandbox.py -- make core build provision APP_VERSION="$(git rev-parse HEAD)"
 sha256sum ../stunmesh-build/artifacts/stunmesh-core.aar
 ```
+
+The host-lifecycle kernel tests use `/artifacts/wg` (built below from the verified
+upstream source) and the verified BusyBox/musl pair in `artifacts/image-tools`.
+Populate those native inputs before `--net-admin` tests; no historical workspace
+build directory or host `ip` binary is assumed. Also run the standard-library
+helper checks: `python3 scripts/test-client.py` and `python3 scripts/test-services.py`.
 
 Then, from the Android checkout, supply that reviewed hash (not an unrelated upstream AAR):
 
