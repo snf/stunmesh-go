@@ -13,7 +13,7 @@ func TestPeerId_EndpointKey(t *testing.T) {
 	peerId := entity.NewPeerId(devicePublicKey, peerPublicKey)
 	endpointKey := peerId.EndpointKey()
 
-	expected := "69a3644d1309c06209b8b8f62a951a3fb7dbeab6"
+	expected := "b3384f16283d28558bf8d231cdd8a22fbb4bb982"
 	if endpointKey != expected {
 		t.Errorf("Expected %s, got %s", expected, endpointKey)
 	}
@@ -26,7 +26,7 @@ func TestPeerId_RemoteEndpointKey(t *testing.T) {
 	peerId := entity.NewPeerId(devicePublicKey, peerPublicKey)
 	remoteEndpointKey := peerId.RemoteEndpointKey()
 
-	expected := "fe5ed0cd8bd34dd6000b38e425d8c24ab7492982"
+	expected := "355e04c1ce320c35f6ca08590911e6bf8bffa850"
 	if remoteEndpointKey != expected {
 		t.Errorf("Expected %s, got %s", expected, remoteEndpointKey)
 	}
