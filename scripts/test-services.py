@@ -2,6 +2,8 @@
 """Configuration safety tests. No host mounts, network or cloud credentials."""
 import importlib.machinery
 import importlib.util
+from contextlib import ExitStack
+from types import SimpleNamespace
 import json
 from pathlib import Path
 import subprocess
@@ -15,6 +17,7 @@ def load(name,file):
     mod=importlib.util.module_from_spec(spec);loader.exec_module(mod);return mod
 
 admin=load('admin','syncthing-admin');backup=load('backup','backup-job')
+startup=load('startup','start-services')
 import nas_common
 
 class Services(unittest.TestCase):
@@ -47,5 +50,57 @@ class Services(unittest.TestCase):
         actual={'filesystems':[{'target':'/srv/data','source':'/dev/mapper/ciphered','fstype':'xfs','uuid':'other'}]}
         with patch.object(Path,'read_text',return_value=json.dumps(expected)),patch.object(Path,'resolve',return_value=Path('/srv/data')),patch.object(nas_common,'run',return_value=json.dumps(actual)):
             with self.assertRaisesRegex(RuntimeError,'not mounted'): nas_common.volume_guard('/fixture',['/srv/data/state'])
+
+    def startup_context(self,argv=(),approved=False,running=b'',quota_error=None,volume_error=None):
+        stack=ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(patch.object(startup.sys,'argv',['start-services',*argv]))
+        stack.enter_context(patch.object(startup.os,'geteuid',return_value=1000))
+        stack.enter_context(patch.object(startup,'volume_guard',side_effect=volume_error))
+        stack.enter_context(patch.object(Path,'stat',return_value=SimpleNamespace(st_dev=1,st_ino=2)))
+        stack.enter_context(patch.object(Path,'read_text',return_value=json.dumps({'approved':approved})))
+        quota=stack.enter_context(patch.object(startup,'key_capacity',side_effect=quota_error))
+        calls=stack.enter_context(patch.object(startup,'run',return_value=running))
+        return quota,calls
+
+    def test_startup_refuses_missing_volume_or_quota_before_commands(self):
+        for failure in ('volume','quota'):
+            with self.subTest(failure=failure):
+                quota,calls=self.startup_context(
+                    quota_error=nas_common.KeyQuotaError('low') if failure=='quota' else None,
+                    volume_error=RuntimeError('missing mount') if failure=='volume' else None)
+                with self.assertRaises(RuntimeError): startup.main()
+                calls.assert_not_called()
+                self.doCleanups()
+
+    def test_startup_check_cannot_start_services(self):
+        _,calls=self.startup_context(argv=['--check'],approved=True)
+        startup.main()
+        self.assertEqual([c.args[0][:2] for c in calls.call_args_list],
+                         [['podman','ps'],['/srv/containers/service-tools/syncthing-service','check']])
+
+    def test_startup_does_not_touch_running_sync_or_start_disabled_jobs(self):
+        for approved in (False,True):
+            with self.subTest(approved=approved):
+                quota,calls=self.startup_context(approved=approved,running=b'syncthing-v2\n' if approved else b'')
+                startup.main()
+                commands=[c.args[0] for c in calls.call_args_list]
+                self.assertEqual([c[0] for c in commands],['podman','podman','podman-compose','podman'])
+                self.assertEqual(quota.call_count,2)
+                self.assertTrue(all('--force-recreate' not in c for c in commands))
+                self.doCleanups()
+
+    def test_startup_rechecks_quota_before_vpn_group(self):
+        quota,calls=self.startup_context()
+        quota.side_effect=[None,nas_common.KeyQuotaError('low')]
+        with self.assertRaises(nas_common.KeyQuotaError): startup.main()
+        self.assertEqual([c.args[0][:2] for c in calls.call_args_list],[['podman','ps'],['podman','compose']])
+
+    def test_both_compose_forms_bounded_and_failure_output_withheld(self):
+        for command in (['podman','compose','up','-d'],['podman-compose','up','-d']):
+            with patch.object(nas_common.subprocess,'run',return_value=SimpleNamespace(returncode=124,stdout=b'secret-canary',stderr=b'secret-canary')) as execute:
+                with self.assertRaises(RuntimeError) as error: nas_common.run(command)
+            self.assertEqual(execute.call_args.args[0],['timeout','--kill-after=5s','90s',*command])
+            self.assertNotIn('secret-canary',str(error.exception))
 
 if __name__=='__main__': unittest.main()

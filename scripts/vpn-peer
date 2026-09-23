@@ -12,30 +12,9 @@ import stat
 import subprocess
 import sys
 import tempfile
+from nas_common import KeyQuotaError,atomic,key_capacity,run
 
 IMAGE = 'sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb'
-
-class KeyQuotaError(RuntimeError): pass
-
-def run(args,data=None):
-    if args[0]=='podman-compose':
-        # Compose can otherwise wait forever for a dependency that failed to start.
-        args=['timeout','--kill-after=5s','90s',*args]
-    r=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    if r.returncode: raise RuntimeError('operation failed: '+Path(args[0]).name+' '+args[1])
-    return r.stdout
-
-def key_capacity():
-    used_keys=used_bytes=0
-    for row in Path('/proc/key-users').read_text().splitlines():
-        owner,values=row.split(':',1)
-        if int(owner)==os.getuid():
-            fields=values.split()
-            used_keys=int(fields[2].split('/')[0]);used_bytes=int(fields[3].split('/')[0])
-    maximum=int(Path('/proc/sys/kernel/keys/maxkeys').read_text())
-    byte_maximum=int(Path('/proc/sys/kernel/keys/maxbytes').read_text())
-    if maximum-used_keys<32 or byte_maximum-used_bytes<4096:
-        raise KeyQuotaError('insufficient keyring headroom')
 
 def container(command,data=None,mount=None,output=None,cap=False,shell=False):
     args=['podman','run','--rm','--pull=never','--network=none','--read-only','--log-driver=none',
@@ -52,15 +31,6 @@ def private(path):
     if not stat.S_ISREG(st.st_mode) or st.st_mode&0o077 or st.st_size>16384:
         raise RuntimeError('profile must be an owner-only regular file within size bounds')
     return path.read_bytes()
-
-def atomic(path,data):
-    fd,name=tempfile.mkstemp(prefix='.vpn-peer-',dir=path.parent)
-    try:
-        with os.fdopen(fd,'wb') as f:
-            f.write(data);f.flush();os.fsync(f.fileno())
-        os.replace(name,path)
-    finally:
-        if os.path.exists(name): os.unlink(name)
 
 def mappings(items):
     result={}

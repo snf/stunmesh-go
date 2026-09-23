@@ -5,7 +5,25 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+class KeyQuotaError(RuntimeError): pass
+
+def key_capacity():
+    """Reserve room for a bounded service-group start; never change quotas."""
+    used_keys=used_bytes=0
+    for row in Path('/proc/key-users').read_text().splitlines():
+        owner,values=row.split(':',1)
+        if int(owner)==os.getuid():
+            fields=values.split()
+            used_keys=int(fields[2].split('/')[0]);used_bytes=int(fields[3].split('/')[0])
+    maximum=int(Path('/proc/sys/kernel/keys/maxkeys').read_text())
+    byte_maximum=int(Path('/proc/sys/kernel/keys/maxbytes').read_text())
+    if maximum-used_keys<32 or byte_maximum-used_bytes<4096:
+        raise KeyQuotaError('insufficient keyring headroom')
+
 def run(args,data=None):
+    if args[0]=='podman-compose' or args[:2]==['podman','compose']:
+        # Kill the complete foreground Compose process group if startup stalls.
+        args=['timeout','--kill-after=5s','90s',*args]
     p=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     if p.returncode:
         raise RuntimeError('command failed: '+Path(args[0]).name+' '+args[1]+' (output withheld)')
