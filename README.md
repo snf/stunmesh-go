@@ -1,4 +1,6 @@
-> **Owner fork:** download the reviewed container image from [GitHub Releases](RELEASES.md). Deployment files contain generic examples; supply private site configuration separately.
+> **Installation transition:** Read [PUBLICATION_TRANSITION.md](PUBLICATION_TRANSITION.md) before using these rebuilt releases. Android requires a fresh installation and enrollment; all endpoints need the matching discovery namespace.
+
+> **Audited fork:** download the reviewed container image from [GitHub Releases](RELEASES.md). Deployment files contain generic examples; supply private site configuration separately.
 
 # STUNMESH — local OpenDHT/WireGuard fork
 
