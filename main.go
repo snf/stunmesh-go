@@ -2,14 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/tjjh89017/stunmesh-go/app"
+	"github.com/tjjh89017/stunmesh-go/internal/config"
+	"github.com/tjjh89017/stunmesh-go/internal/linuxprofile"
 )
 
 var buildVersion = "dev"
@@ -34,6 +40,9 @@ func main() {
 }
 
 func run() error {
+	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "linux-") {
+		return linuxCommand(os.Args[1:])
+	}
 	var (
 		oneshot     bool
 		showVersion bool
@@ -77,4 +86,62 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+func linuxCommand(args []string) error {
+	if len(args) == 2 && args[0] == "linux-config-check" {
+		_, err := config.Load(args[1], "")
+		return err
+	}
+	if len(args) == 2 && (args[0] == "linux-server" || args[0] == "linux-activate" || args[0] == "linux-revoke") {
+		s, err := linuxprofile.LoadServer(args[1])
+		if err != nil {
+			return err
+		}
+		if args[0] == "linux-server" {
+			return json.NewEncoder(os.Stdout).Encode(s.Public())
+		}
+		p, err := linuxprofile.Read(os.Stdin)
+		if err != nil {
+			return err
+		}
+		b, err := s.Edited(p, args[0] == "linux-revoke")
+		if err != nil {
+			return err
+		}
+		_, err = os.Stdout.Write(b)
+		return err
+	}
+	if args[0] == "linux-issue" && len(args) == 1 {
+		b, err := io.ReadAll(io.LimitReader(os.Stdin, linuxprofile.MaxBytes+1))
+		if err != nil {
+			return err
+		}
+		b, err = linuxprofile.Issue(b, "/usr/local/bin/wg")
+		if err != nil {
+			return err
+		}
+		_, err = os.Stdout.Write(append(b, '\n'))
+		return err
+	}
+	if args[0] == "linux-check" && len(args) == 1 {
+		p, err := linuxprofile.Read(os.Stdin)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(p.Public())
+	}
+	if len(args) != 2 || (args[0] != "linux-run" && args[0] != "linux-clean") {
+		return errors.New("invalid Linux operation")
+	}
+	p, err := linuxprofile.Load(args[1])
+	if err != nil {
+		return err
+	}
+	if args[0] == "linux-clean" {
+		return linuxprofile.Native().Cleanup(p)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return linuxprofile.Run(ctx, p)
 }

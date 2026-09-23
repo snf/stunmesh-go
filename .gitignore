@@ -81,3 +81,6 @@ signing.properties
 wg*.conf
 stunmesh.yml
 /deploy/client/config/
+
+# Python helper bytecode; helpers use only the standard library.
+__pycache__/
