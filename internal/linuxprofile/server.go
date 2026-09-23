@@ -1,7 +1,6 @@
 package linuxprofile
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -126,7 +125,7 @@ func (s Server) Public() map[string]any {
 // Edited returns confidential candidate files. It never changes the server or
 // authorizes a live peer. The caller validates them using wg in an isolated
 // namespace, then performs an explicit, locked file transaction and restart.
-func (s Server) Edited(p Profile, revoke bool) ([]byte, error) {
+func (s Server) Edited(p Profile, revoke bool) (map[string]string, error) {
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}
@@ -171,5 +170,30 @@ func (s Server) Edited(p Profile, revoke bool) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("cannot render discovery config")
 	}
-	return json.Marshal(map[string]string{"wg0.conf": s.WG, "stunmesh.yml": string(yml)})
+	return map[string]string{"wg0.conf": s.WG, "stunmesh.yml": string(yml)}, nil
+}
+
+// WriteEdited writes confidential candidates only to new private files. Container
+// stdout/stderr may be retained by a log driver even when the caller captures it.
+func (s Server) WriteEdited(p Profile, revoke bool, dir string) error {
+	st, err := os.Lstat(dir)
+	if err != nil || !st.IsDir() || st.Mode().Perm()&0077 != 0 {
+		return errors.New("candidate directory must be private")
+	}
+	files, err := s.Edited(p, revoke)
+	if err != nil {
+		return err
+	}
+	written := []string{}
+	for _, name := range []string{"wg0.conf", "stunmesh.yml"} {
+		path := filepath.Join(dir, name)
+		if err := WriteNew(path, []byte(files[name])); err != nil {
+			for _, path := range written {
+				_ = os.Remove(path)
+			}
+			return err
+		}
+		written = append(written, path)
+	}
+	return nil
 }

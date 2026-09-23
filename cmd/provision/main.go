@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tjjh89017/stunmesh-go/internal/linuxprofile"
 	"github.com/tjjh89017/stunmesh-go/internal/provision"
 )
 
@@ -31,18 +30,6 @@ func main() {
 	}
 }
 func run(args []string) error {
-	if len(args) == 1 && args[0] == "linux" {
-		b, err := io.ReadAll(io.LimitReader(os.Stdin, linuxprofile.MaxBytes+1))
-		if err != nil {
-			return errors.New("cannot read issuance template")
-		}
-		b, err = linuxprofile.Issue(b, "/usr/local/bin/wg")
-		if err != nil {
-			return err
-		}
-		_, err = os.Stdout.Write(append(b, '\n'))
-		return err
-	}
 	if len(args) == 0 {
 		return errors.New("usage: provision new|reply [flags]; -h lists required inputs")
 	}
