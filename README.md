@@ -6,7 +6,7 @@
 
 This home-use fork discovers endpoints behind NAT. **WireGuard authenticates peers and encrypts VPN traffic.** STUN and OpenDHT provide bounded, unauthenticated address hints; they cannot enroll a peer or change keys, PSKs or AllowedIPs. Public services can observe discovery metadata, poison hints or deny service. They do not relay established VPN traffic. Direct connectivity is still NAT-dependent; there is no relay fallback.
 
-The Android companion is `snf/stunmesh-android`, application ID `dev.stunmesh.local`. Both fork endpoints must use the new `stunmesh-hints-v2` namespace and version-2 public records. Upstream encrypted records are intentionally incompatible; there is no legacy fallback.
+The Android companion is [stunmesh-android](https://github.com/snf/stunmesh-android), application ID `dev.stunmesh.local`. Both fork endpoints must use the new `stunmesh-hints-v2` namespace and version-2 public records. Upstream encrypted records are intentionally incompatible; there is no legacy fallback.
 
 ## What remains
 
@@ -22,11 +22,9 @@ Follow [LOCAL_BUILD.md](LOCAL_BUILD.md) for pinned tools, isolated/offline tests
 
 [deploy/README.md](deploy/README.md) documents the rootless trial arrangement and configuration conversion. Do not deploy the old upstream image and the new Android app together. The current trial preserves the NAS encrypted-mount startup, service user/maps, Samba and NFS; Restic remains disabled. NFS retirement belongs to the subsequent preparation plan below. No firewall change is part of this implementation.
 
-[deploy/client/README.md](deploy/client/README.md) provides the tested headless Linux client, plain Podman/Compose commands, and an on-demand rootless systemd/Quadlet service. The `linux-client-v0.1.0` prerelease includes the exact locally built Linux/amd64 OCI image; real configuration and credentials are never part of the release. Host applications currently use an explicit SSH proxy; direct host routing is the next stage.
+[Rootless container client](deploy/client/README.md) and [direct host client](deploy/client-host/README.md) are included in the current [release](RELEASES.md). The direct host client requires separate privileged setup; it does not change the NAS's rootless model. Deployment helpers use a pinned, rebuilt image. Real profiles, credentials and service-user ownership belong in private site configuration.
 
-[OPERATIONS.md](OPERATIONS.md) is the current NAS/services handoff. The `linux-client-v0.2.0` prerelease packages the [direct laptop client](deploy/client-host/README.md), one confidential NAS-issued profile, paused native Syncthing enrollment and disabled one-shot Restic backups. **NAS VPN recovered after the owner raised the keyring quota; the unused laptop identity was revoked/replaced. Existing server/older-client credential rotation remains deferred.** Samba LAN bindings are active. Laptop host installation, real sync enrollment and cold backups remain separate gates. [EXECUTION_PROGRESS.md](EXECUTION_PROGRESS.md) records actual tests/changes. [DIRECT_ACCESS_AND_SYNC_PLAN.md](DIRECT_ACCESS_AND_SYNC_PLAN.md) retains the decisions and later whole-LAN `10.77.1.x` proposal; no host firewall or unreviewed namespace-NAT change was made.
-
-[PROVISIONING.md](PROVISIONING.md) covers public-only enrollment, optional PSK handling and recovery. [DEVICE_TESTS.md](DEVICE_TESTS.md) is the later NAS/GrapheneOS gate, including actual routing, backup, handover and battery tests. Building the APK is not evidence that these hardware checks passed.
+[OPERATIONS.md](OPERATIONS.md) describes service boundaries and remaining acceptance gates. Historical live-test results do not validate the newly named application, signer or discovery namespace. The current publication changes no running service. Previously reported credential rotation remains outstanding; see [SECRET_REVIEW.md](SECRET_REVIEW.md).
 
 ## Security record
 

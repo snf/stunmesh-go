@@ -14,7 +14,7 @@ import sys
 import tempfile
 from nas_common import KeyQuotaError,atomic,key_capacity,run
 
-IMAGE = 'sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb'
+IMAGE = 'sha256:2570f2efddc079baa05449d2e4be854ab472f816b752fdbd7873b14893fa041d'
 
 def container(command,data=None,mount=None,output=None,cap=False,shell=False):
     args=['podman','run','--rm','--pull=never','--network=none','--read-only','--log-driver=none',

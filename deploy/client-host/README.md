@@ -1,3 +1,5 @@
+> **Migration required:** These names and the discovery namespace changed. Read [the transition guide](../../PUBLICATION_TRANSITION.md) before applying this to an existing installation.
+
 # Direct laptop access
 
 Linux/amd64, Podman 5.4+, systemd/Quadlet, Python 3.9+, iproute2 and OpenSSH.
@@ -22,21 +24,21 @@ exposure; retrieve only the current canonical file. See the unresolved NAS/older
 [credential rotation](../../OPERATIONS.md#coordinated-rotation-not-yet-applied).
 
 ```sh
-git clone --branch v0.2.1 https://github.com/snf/stunmesh-go.git
+git clone --branch v0.3.0 https://github.com/snf/stunmesh-go.git
 cd stunmesh-go
 install -d -m 0700 "$HOME/.config/stunmesh"
 (umask 077; scp operator@192.168.0.10:/srv/containers/stunmesh-audit-trial/issued/laptop.json \
   "$HOME/.config/stunmesh/laptop.json")
 
-curl -fL https://github.com/snf/stunmesh-go/releases/download/v0.2.1/stunmesh-linux-amd64.oci.tar \
+curl -fL https://github.com/snf/stunmesh-go/releases/download/v0.3.0/stunmesh-linux-amd64.oci.tar \
   -o /tmp/stunmesh-linux-amd64.oci.tar
-printf '%s\n' 'afa228bc05e26577aa81c193ccba5dd66273d207c6fb0d9182a473bfcbddc2d4  /tmp/stunmesh-linux-amd64.oci.tar' | sha256sum -c -
+printf '%s\n' '315bcc64b85294c329d0caa25a9b139879e6a7087557ca484d8ee9ae92eea1e8  /tmp/stunmesh-linux-amd64.oci.tar' | sha256sum -c -
 podman load -i /tmp/stunmesh-linux-amd64.oci.tar
 sudo podman load -i /tmp/stunmesh-linux-amd64.oci.tar
 ./scripts/vpn-client check --config "$HOME/.config/stunmesh/laptop.json"
 ```
 
-Pinned image ID: `sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb`.
+Pinned image ID: `sha256:2570f2efddc079baa05449d2e4be854ab472f816b752fdbd7873b14893fa041d`.
 Rootless and rootful Podman have separate stores, hence the two explicit loads.
 The archive contains five runtime files, no device profiles or source checkout.
 

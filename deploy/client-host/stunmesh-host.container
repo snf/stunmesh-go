@@ -7,7 +7,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=3
 
 [Container]
-Image=sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb
+Image=sha256:2570f2efddc079baa05449d2e4be854ab472f816b752fdbd7873b14893fa041d
 Pull=never
 ContainerName=stunmesh-host
 Network=host

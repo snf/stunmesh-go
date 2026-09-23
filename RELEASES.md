@@ -1,22 +1,20 @@
 # Go/container releases
 
-Download [Owner v0.2.1](https://github.com/snf/stunmesh-go/releases/tag/v0.2.1). Its assets are the Linux/amd64 OCI image `stunmesh-linux-amd64.oci.tar`, `SHA256SUMS` and provenance JSON. Binary artifacts and private runtime configuration are not committed files.
+Download [STUNMESH 0.3.0](https://github.com/snf/stunmesh-go/releases/tag/v0.3.0). Assets: `stunmesh-linux-amd64.oci.tar`, `SHA256SUMS`, `PROVENANCE.json`. Binaries and runtime credentials are not ordinary committed files.
 
-This is a publication/privacy update using the same tested image as the preceding Linux client prerelease. The image's runtime source and dependencies were not changed by history sanitization.
+**Coordinated migration required:** both endpoints must use `stunmesh-hints-v2`. Provisioning schemas and deployment names also changed; read [PUBLICATION_TRANSITION.md](PUBLICATION_TRANSITION.md). This release was rebuilt from the cleaned source, not renamed from the retired image. No running host/service was changed.
 
 | Property | Value |
 | --- | --- |
-| OCI archive SHA-256 | `afa228bc05e26577aa81c193ccba5dd66273d207c6fb0d9182a473bfcbddc2d4` |
-| Image configuration ID | `sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb` |
+| OCI archive SHA-256 | `315bcc64b85294c329d0caa25a9b139879e6a7087557ca484d8ee9ae92eea1e8` |
+| Image configuration ID | `sha256:2570f2efddc079baa05449d2e4be854ab472f816b752fdbd7873b14893fa041d` |
 | Platform | Linux/amd64 |
-| Contents | Daemon, official `wg`, BusyBox, musl loader and entrypoint; no runtime credentials/configuration |
+| Contents | Daemon, official `wg`, BusyBox, musl loader and entrypoint; no configuration or credentials |
 
-Download the image and checksum asset to one directory and run `sha256sum -c SHA256SUMS`, then `podman load -i stunmesh-linux-amd64.oci.tar`. Verify the loaded image ID above. The rootless NAS deployment and optional privileged direct-host Linux client have different authority requirements; review [deployment guidance](OPERATIONS.md) before starting either.
+Download the archive and checksum asset into one directory, run `sha256sum -c SHA256SUMS`, then `podman load -i stunmesh-linux-amd64.oci.tar`. Verify the loaded image ID. Rootless NAS operation and the optional privileged direct-host client have different authority requirements; review [operations](OPERATIONS.md), [rootless client](deploy/client/README.md) and [host client](deploy/client-host/README.md).
 
-Public deployment files contain generic example addresses, aliases and directories. Adapt them to private site configuration; do not apply them to an existing installation unchanged. History rewriting did not modify any running service. Keep private configuration and enrollment outside this public repository.
+Public templates contain generic example addresses, service users and directories. Adapt them to private site configuration and review existing interfaces/containers before deployment. Preserve UID/GID mappings and ownership. No firewall, NFS or active file-sharing change is implied.
 
-Native WireGuard authentication, split routing, helper lifecycle and synthetic service/backup tests have passed. Actual OS recovery, extended reliability and battery measurements remain outside completed acceptance. Discovery still depends on public STUN/OpenDHT and has no guaranteed relay fallback for every NAT.
+Go race tests/vet, helper checks and the rebuilt image's isolated kernel-WireGuard authentication tests passed. The companion [Android 0.3.1 release](https://github.com/snf/stunmesh-android/releases/tag/v0.3.1) requires a fresh install/enrollment. New end-to-end NAS/phone acceptance remains pending; public STUN/OpenDHT has no guaranteed relay fallback for every NAT.
 
-Older local deployments affected by provisioning output captured in logs must rotate affected credentials. This release's file-only provisioning and disabled helper logging prevent the identified retention path; publishing clean source does not repair prior exposure. See [credential/privacy review](SECRET_REVIEW.md).
-
-The companion [Android release](https://github.com/snf/stunmesh-android/releases/tag/v0.3.0-local.4) retains its existing owner signing identity and supports Obtainium.
+Prior provisioning-log credential exposure still requires coordinated rotation. Clean publication does not undo that exposure. See [security review](SECRET_REVIEW.md), [artifact provenance](ARTIFACT_MANIFEST.json) and [build instructions](LOCAL_BUILD.md).

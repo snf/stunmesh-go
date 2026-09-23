@@ -1,11 +1,13 @@
+> **Migration required:** These names and the discovery namespace changed. Read [the transition guide](../../PUBLICATION_TRANSITION.md) before applying this to an existing installation.
+
 # Headless Podman client
 
 The existing reviewed image already implements both WireGuard peers. The client uses the same five-file image as the NAS, a different private identity, and a read-only configuration directory. There is no UI, new daemon, proxy protocol, dependency or authentication scheme. WireGuard authenticates the peer; SSH and Samba retain their normal service authentication.
 
-For a new checkout, use the release tag rather than the fork's old upstream `main`:
+For a new checkout, use the release tag for a pinned deployment:
 
 ```sh
-git clone --branch linux-client-v0.1.0 https://github.com/snf/stunmesh-go.git
+git clone --branch v0.3.0 https://github.com/snf/stunmesh-go.git
 cd stunmesh-go
 ```
 
@@ -15,10 +17,10 @@ This stage gives **the client container** a VPN route to `10.77.0.1/32`. Normal 
 
 Requirements: a Linux host with working rootless Podman, user/network namespaces, kernel WireGuard and a functioning `pasta` networking backend (including `/dev/net/tun`). Tested remotely with Podman 5.4.2. A restricted development container can prevent nested Podman operation even when `unshare --user --net` works; run these commands on the laptop host.
 
-The exact locally built image is published as a Linux/amd64 OCI archive in [linux-client-v0.1.0](https://github.com/snf/stunmesh-go/releases/tag/linux-client-v0.1.0). It is also in `stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar` next to the original checkout. Its SHA-256 is `8020acf13bae04463a09289615e7591653b84da3e84e04ca5c9e11878af11380`; see [build provenance](../../ARTIFACT_MANIFEST.json). On another machine, download the versioned asset into the same external layout (skip this when the verified local archive already exists):
+The exact locally built image is published as a Linux/amd64 OCI archive in [v0.3.0](https://github.com/snf/stunmesh-go/releases/tag/v0.3.0). Its SHA-256 is `315bcc64b85294c329d0caa25a9b139879e6a7087557ca484d8ee9ae92eea1e8`; see [build provenance](../../ARTIFACT_MANIFEST.json). On another machine, download the versioned asset into the same external layout (skip this when the verified local archive already exists):
 
 ```sh
-gh release download linux-client-v0.1.0 --repo snf/stunmesh-go \
+gh release download v0.3.0 --repo snf/stunmesh-go \
   --pattern stunmesh-linux-amd64.oci.tar --pattern SHA256SUMS \
   --dir ../stunmesh-build/artifacts/handover
 ```
@@ -28,7 +30,7 @@ Run from the Go repository root. Verify against the checksum committed in this c
 ```sh
 (cd ../stunmesh-build/artifacts/handover && sha256sum -c -) < releases/SHA256SUMS
 podman load -i ../stunmesh-build/artifacts/handover/stunmesh-linux-amd64.oci.tar
-export STUNMESH_IMAGE=sha256:470285618081f8b2ecb049f0b8280a815b9a7d88bbed2c6933ad1e7a34d7d8e8
+export STUNMESH_IMAGE=sha256:2570f2efddc079baa05449d2e4be854ab472f816b752fdbd7873b14893fa041d
 export STUNMESH_CONFIG=/absolute/path/to/private/client-config
 podman run -d --name stunmesh-client --pull=never \
   --network=pasta:--ipv4-only -p 51830:51830/udp \
