@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""Install the fixed, rootful host client. check is read-only; install never starts it.
+Only the profile is device-specific. No profile value is executed as shell text.
+"""
+import argparse
+import difflib
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+
+# Updated only with a verified, tested OCI build. Never supplied by the profile.
+IMAGE = "sha256:ad1b1f474b52b203fb42a64e016e822687e91b41c04707e5c083e97ad060db4e"
+BASE = Path('/etc/stunmesh')
+HELPER = Path('/usr/local/libexec/stunmesh/vpn-client')
+QUADLET = Path('/etc/containers/systemd/stunmesh-host.container')
+GUARD = Path('/etc/systemd/system/stunmesh-guard.service')
+SERVICE = 'stunmesh-host.service'
+BEGIN, END = '# BEGIN STUNMESH', '# END STUNMESH'
+
+def run(args, data=None):
+    result = subprocess.run(args, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode:
+        # Do not echo config, argv or arbitrary container error output.
+        raise RuntimeError('operation failed: ' + Path(args[0]).name + ' ' + args[1])
+    return result.stdout
+
+def private(path):
+    st = path.lstat()
+    if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o077 or st.st_size > 16384:
+        raise RuntimeError('profile must be a regular, owner-only file smaller than 16 KiB')
+    return path.read_bytes()
+
+def inspect_profile(path):
+    return json.loads(run(['podman','run','--rm','--pull=never','--network=none',
+        '--read-only','--cap-drop=all','--security-opt=no-new-privileges',
+        '--pids-limit=32','--memory=64m','--entrypoint=/usr/local/bin/stunmesh-go',
+        '-i',IMAGE,'linux-check'], private(path)))
+
+def hosts_text(original, info):
+    if BEGIN in original or END in original:
+        raise RuntimeError('managed hosts block already exists; use the installed client')
+    names = info['hostnames'] | info['lan_hostnames']
+    seen = set()
+    lines = []
+    for line in original.splitlines():
+        fields = line.split('#',1)[0].split()
+        touched = False
+        if len(fields) >= 2:
+            retained = []
+            for name in fields[1:]:
+                if name not in names:
+                    retained.append(name)
+                    continue
+                if name in seen:
+                    raise RuntimeError('ambiguous repeated hostname in hosts file')
+                seen.add(name)
+                old = info['lan_hostnames'].get(name + '-lan', names[name])
+                if fields[0] not in (old,names[name]):
+                    raise RuntimeError('hostname already maps to an unapproved address')
+                touched = True
+            if touched:
+                comment = (' #' + line.split('#',1)[1]) if '#' in line else ''
+                if retained:
+                    lines.append(fields[0] + '\t' + ' '.join(retained) + comment)
+                elif comment:
+                    lines.append(comment.lstrip())
+                continue
+        lines.append(line)
+    lines += ['',BEGIN] + [ip+'\t'+name for name,ip in sorted(names.items())] + [END]
+    return '\n'.join(lines)+'\n'
+
+def dependencies(info):
+    paths = [Path('/etc/fstab')]
+    paths += list(Path('/etc').glob('auto.*'))
+    paths += list(Path('/etc/systemd/system').glob('*.mount'))
+    names = list(info['hostnames'])
+    for path in paths:
+        if not path.is_file():
+            continue
+        for line in path.read_text(errors='replace').splitlines():
+            if line.lstrip().startswith('#'):
+                continue
+            if any(re.search(r'(?<![\w.-])'+re.escape(name)+r'(?![\w.-])',line) for name in names):
+                raise RuntimeError('hostname used by mount/automount configuration: '+str(path))
+
+def collision_check(info):
+    routes = json.loads(run(['ip','-j','route','show','table','main']))
+    for route in routes:
+        dst = route.get('dst','default')
+        if dst == 'default':
+            continue
+        prefix = ipaddress.ip_network(dst,strict=False)
+        if any(prefix.overlaps(ipaddress.ip_network(r)) for r in info['allowed_ips']):
+            raise RuntimeError('existing host route overlaps the selected VPN routes')
+    links = json.loads(run(['ip','-j','link','show']))
+    if any(x['ifname']=='wg0' for x in links):
+        raise RuntimeError('wg0 already exists')
+
+def guard_routes(info, remove=False):
+    for route in info['allowed_ips']:
+        existing=json.loads(run(['ip','-j','route','show','exact',route]))
+        # iproute2 resolves protocol 186 to "bgp" on many distributions;
+        # BusyBox and some JSON implementations retain the number.
+        owned=any(r.get('type')=='unreachable' and r.get('metric')==42777 and str(r.get('protocol')) in ('186','bgp') for r in existing)
+        if remove:
+            if owned: run(['ip','route','del','unreachable',route,'metric','42777','proto','186'])
+        elif not owned:
+            run(['ip','route','add','unreachable',route,'metric','42777','proto','186'])
+
+def write_new(path, text, mode=0o600):
+    with path.open('x') as f:
+        os.fchmod(f.fileno(),mode)
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+
+def replace_hosts(text):
+    # /etc/hosts may be a bind mount: preserve inode, owner, mode and xattrs.
+    with Path('/etc/hosts').open('r+') as f:
+        f.write(text); f.truncate(); f.flush(); os.fsync(f.fileno())
+
+def unit():
+    return f'''[Unit]
+Description=WireGuard direct service access
+Requires=stunmesh-guard.service
+After=stunmesh-guard.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Container]
+Image={IMAGE}
+Pull=never
+ContainerName=stunmesh-host
+Network=host
+User=0:0
+DropCapability=all
+AddCapability=NET_ADMIN
+NoNewPrivileges=true
+ReadOnly=true
+PidsLimit=128
+Volume={BASE}/laptop.json:/config/laptop.json:ro
+Tmpfs=/run:rw,nosuid,nodev,noexec,size=4m,mode=755
+Entrypoint=/usr/local/bin/stunmesh-go
+Exec=linux-run /config/laptop.json
+
+[Service]
+ExecStartPre={HELPER} preflight
+ExecStopPost={HELPER} cleanup
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=30
+'''
+
+def guard_unit():
+    return f'''[Unit]
+Description=Reject VPN service routes when the tunnel is down
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart={HELPER} guard
+RemainAfterExit=yes
+
+[Install]
+WantedBy=network-pre.target
+'''
+
+def preflight(info):
+    # A second rootless client is an avoidable source of confusing acceptance.
+    user = os.environ.get('SUDO_USER') or info.get('install_user')
+    if user:
+        uid = run(['id','-u',user]).decode().strip()
+        names=run(['runuser','-u',user,'--','env','XDG_RUNTIME_DIR=/run/user/'+uid,
+                   'podman','ps','--format','{{.Names}}']).decode().splitlines()
+        if 'stunmesh-client' in names:
+            raise RuntimeError('stop the original rootless client before direct-access testing')
+    links=json.loads(run(['ip','-j','link','show']))
+    if any(x['ifname']=='wg0' for x in links):
+        raise RuntimeError('interface already exists; verify ownership before cleanup')
+    listeners=run(['ss','-H','-l','-u','-n']).decode()
+    for port in (51832,51834):
+        if re.search(r':'+str(port)+r'\s',listeners):
+            raise RuntimeError('fixed client UDP port already in use')
+    dependencies(info)
+
+def ssh_settings(info):
+    user=os.environ.get('SUDO_USER')
+    for name,ip in info['hostnames'].items():
+        command=(['runuser','-u',user,'--'] if user else [])+['ssh','-G',name]
+        settings=dict(line.split(' ',1) for line in run(command).decode().splitlines() if ' ' in line)
+        if settings.get('hostname') not in (name,ip) or settings.get('port')!='22' or any(settings.get(k,'none')!='none' for k in ('proxycommand','proxyjump')):
+            raise RuntimeError('SSH configuration overrides the direct VPN path for '+name+'; review ssh -G before cutover')
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action',choices=['check','install','start','stop','status','uninstall','guard','preflight','cleanup'])
+    parser.add_argument('--config',type=Path,default=BASE/'laptop.json')
+    parser.add_argument('--apply-hosts',action='store_true',help='apply the hosts diff printed by check')
+    a=parser.parse_args()
+    if a.action!='check' and os.geteuid()!=0:
+        raise RuntimeError('this operation requires host root')
+    if a.action in ('check','install'):
+        info=inspect_profile(a.config)
+        dependencies(info); collision_check(info); ssh_settings(info)
+        original=Path('/etc/hosts').read_text(); proposed=hosts_text(original,info)
+        print(json.dumps(info,indent=2))
+        print(''.join(difflib.unified_diff(original.splitlines(True),proposed.splitlines(True),fromfile='/etc/hosts',tofile='proposed /etc/hosts')),end='')
+        print('Workspace launcher:', ' '.join('--add-host='+name+':'+ip for name,ip in sorted(info['hostnames'].items())))
+        if a.action=='check': return
+        if not a.apply_hosts: raise RuntimeError('review check output, then install with --apply-hosts')
+        if BASE.exists() or HELPER.parent.exists() or QUADLET.exists() or GUARD.exists():
+            raise RuntimeError('installation paths already exist; refusing to overwrite')
+        preflight(info)
+        if os.environ.get('SUDO_USER'): info['install_user']=os.environ['SUDO_USER']
+        BASE.mkdir(mode=0o700); HELPER.parent.mkdir(mode=0o755,parents=True)
+        QUADLET.parent.mkdir(mode=0o755,parents=True,exist_ok=True)
+        write_new(BASE/'laptop.json',private(a.config).decode())
+        write_new(BASE/'public.json',json.dumps(info))
+        write_new(BASE/'hosts.before',original)
+        write_new(BASE/'hosts.installed',proposed)
+        write_new(HELPER,Path(__file__).read_text(),0o755)
+        write_new(QUADLET,unit(),0o644); write_new(GUARD,guard_unit(),0o644)
+        run(['systemctl','daemon-reload'])
+        # Guards precede names: any failure leaves original resolution intact.
+        run(['systemctl','enable','--now','stunmesh-guard.service'])
+        replace_hosts(proposed)
+        print('Installed. The VPN has not been started or enabled at boot.')
+        return
+    info=json.loads((BASE/'public.json').read_text())
+    if a.action=='guard': guard_routes(info)
+    elif a.action=='preflight': preflight(info)
+    elif a.action=='cleanup':
+        run(['podman','run','--rm','--pull=never','--network=host','--read-only',
+             '--cap-drop=all','--cap-add=NET_ADMIN','--security-opt=no-new-privileges',
+             '--pids-limit=32','--entrypoint=/usr/local/bin/stunmesh-go',
+             '-v',str(BASE/'laptop.json')+':/config/laptop.json:ro',IMAGE,'linux-clean','/config/laptop.json'])
+    elif a.action=='start':
+        preflight(info); run(['systemctl','start',SERVICE]); print('Started; verify routes and authenticated handshakes.')
+    elif a.action=='stop': run(['systemctl','stop',SERVICE]); print('Stopped. VPN service addresses remain unreachable.')
+    elif a.action=='status':
+        subprocess.run(['systemctl','--no-pager','status',SERVICE],check=False)
+        print(run(['ip','route','show','proto','186']).decode(),end='')
+        # Public WG status only: never showconf/dump (those disclose secrets).
+        subprocess.run(['podman','exec','stunmesh-host','wg','show','wg0'],check=False)
+    elif a.action=='uninstall':
+        if Path('/etc/hosts').read_text()!=(BASE/'hosts.installed').read_text():
+            raise RuntimeError('hosts changed since installation; merge hosts.before manually before uninstall')
+        run(['systemctl','stop',SERVICE])
+        replace_hosts((BASE/'hosts.before').read_text())
+        run(['systemctl','disable','--now','stunmesh-guard.service'])
+        guard_routes(info,remove=True)
+        QUADLET.unlink();GUARD.unlink();HELPER.unlink();HELPER.parent.rmdir()
+        run(['systemctl','daemon-reload'])
+        print('Removed managed service/routes/names. Private configuration and snapshots retained in '+str(BASE))
+
+if __name__=='__main__':
+    try: main()
+    except (RuntimeError,OSError,ValueError,KeyError) as error:
+        print('vpn-client: '+str(error),file=sys.stderr);sys.exit(1)

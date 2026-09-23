@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly encrypted NAS backup (disabled pending cold restore pilot)
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/srv/containers/service-tools/backup-job run --settings /srv/containers/restic/settings.json
+TimeoutStartSec=infinity
+# No restart loop. A missing/locked volume is a visible failed job.

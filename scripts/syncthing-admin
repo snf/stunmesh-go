@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Fresh native Syncthing identities, paused enrollment and temporary local GUI.
+No custom sync protocol, daemon, discovery service or QR implementation.
+"""
+import argparse
+import copy
+import fcntl
+import getpass
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+from nas_common import atomic,inactive,mount_argument,run,volume_guard
+
+IMAGE='docker.io/syncthing/syncthing@sha256:397aa00b92b48d65540ea3ae3cbf271b87bdccbe07a0b7bd7d2debc3a7b29138'
+DEVICE=re.compile(r'^[A-Z2-7]{7}(?:-[A-Z2-7]{7}){7}$')
+
+def set_text(parent,name,text):
+    values=parent.findall(name)
+    for duplicate in values[1:]: parent.remove(duplicate)
+    item=values[0] if values else ET.SubElement(parent,name)
+    item.text=text
+    return item
+
+def load_xml(path):
+    raw=path.read_bytes()
+    if len(raw)>2*1024*1024 or b'<!DOCTYPE' in raw or b'<!ENTITY' in raw:
+        raise RuntimeError('configuration XML outside supported bounds')
+    root=ET.fromstring(raw)
+    if root.tag!='configuration': raise RuntimeError('not a Syncthing configuration')
+    return root
+
+def harden(root,gui_enabled=False):
+    gui=root.find('gui');options=root.find('options')
+    if gui is None or options is None or not gui.findtext('user') or not (gui.findtext('password') or '').startswith('$2'):
+        raise RuntimeError('generate with a native authenticated GUI password first')
+    gui.set('enabled','true' if gui_enabled else 'false')
+    set_text(gui,'address','0.0.0.0:8384' if gui_enabled else '127.0.0.1:8384')
+    for name in ('globalAnnounceEnabled','localAnnounceEnabled','relaysEnabled','natEnabled','startBrowser','crashReportingEnabled','upgradeToPreReleases'):
+        set_text(options,name,'false')
+    set_text(options,'urAccepted','-1');set_text(options,'autoUpgradeIntervalH','0')
+    set_text(options,'listenAddress','tcp://0.0.0.0:22000')
+    for folder in list(root.findall('folder')):
+        if folder.get('id')=='default': root.remove(folder);continue
+        set_text(folder,'paused','true')
+        folder.set('rescanIntervalS','3600');folder.set('fsWatcherEnabled','true')
+    for device in root.findall('device'):
+        device.set('introducer','false');device.attrib.pop('autoAcceptFolders',None)
+        set_text(device,'autoAcceptFolders','false')
+        set_text(device,'paused','true')
+    return root
+
+def save(path,root):
+    ET.indent(root)
+    atomic(path,ET.tostring(root,encoding='utf-8',xml_declaration=True)+b'\n')
+
+def identity(value):
+    result=value.strip().upper()
+    if not DEVICE.fullmatch(result): raise RuntimeError('invalid public device-ID shape; native Syncthing also verifies its checksum')
+    return result
+
+def pair(root,role,own,ids):
+    if len(set(ids.values()))!=3 or ids[role]!=own: raise RuntimeError('exactly three distinct identities, including this local identity, are required')
+    for item in list(root.findall('device'))+list(root.findall('folder')): root.remove(item)
+    peers=['nas','laptop','android'] if role=='nas' else ['nas','laptop']
+    for peer in peers:
+        device=ET.SubElement(root,'device',{'id':ids[peer],'name':{'android':'android-device'}.get(peer,peer),'compression':'metadata','introducer':'false','autoAcceptFolders':'false'})
+        set_text(device,'address','tcp://10.77.0.1:22000' if peer=='nas' and role=='laptop' else 'dynamic')
+        set_text(device,'paused','true')
+    folders=[('shared','/android-device/syncs','sendreceive',['nas','laptop','android']),
+             ('projects','/data/projects','sendreceive',['nas','laptop'])]
+    if role=='nas': folders.append(('android-camera','/android-device/dcim','receiveonly',['nas','android']))
+    default=root.find('defaults/folder')
+    for fid,path,kind,devices in folders:
+        folder=copy.deepcopy(default) if default is not None else ET.Element('folder')
+        folder.attrib.update({'id':fid,'label':fid,'path':path,'type':kind,'rescanIntervalS':'3600','fsWatcherEnabled':'true','fsWatcherDelayS':'10'})
+        for d in list(folder.findall('device')): folder.remove(d)
+        for d in devices:
+            if d in peers: ET.SubElement(folder,'device',{'id':ids[d]})
+        set_text(folder,'paused','true');root.append(folder)
+    return harden(root)
+
+def args_for(root,state):
+    return ['--rm','--pull=never','--userns=keep-id','--user',str(os.getuid())+':'+str(os.getgid()),
+            '--cap-drop=all','--security-opt=no-new-privileges','--read-only','--umask=0077',
+            '--no-healthcheck','--image-volume=ignore','--unsetenv=STHOMEDIR','--unsetenv=STGUIADDRESS',
+            '--pids-limit=128','--entrypoint=/bin/syncthing',
+            '--mount',mount_argument(root/'config','/config'),
+            '--mount',mount_argument(state,'/state'),
+            '--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m']
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action',choices=['generate','prepare','pair','start','stop','status'])
+    parser.add_argument('--root',required=True,type=Path)
+    parser.add_argument('--state-dir',type=Path)
+    parser.add_argument('--volume-file',type=Path)
+    parser.add_argument('--port',default=8384,type=int)
+    parser.add_argument('--role',choices=['nas','laptop'])
+    for field in ('nas','laptop','android'): parser.add_argument('--'+field+'-id',type=Path)
+    a=parser.parse_args();os.umask(0o077)
+    if os.geteuid()==0: raise RuntimeError('run as the rootless service user')
+    root=a.root.resolve();state=(a.state_dir or root/'state').resolve()
+    if str(root).startswith('/srv/') and not a.volume_file:
+        raise RuntimeError('NAS operations require --volume-file and a large-volume state directory')
+    if a.volume_file: volume_guard(a.volume_file,[state])
+    name='syncthing-admin-'+hashlib.sha256(str(root).encode()).hexdigest()[:12]
+    if a.action=='status':
+        print(run(['podman','ps','--filter','name='+name,'--format','{{.Names}} {{.Status}} {{.Ports}}']).decode(),end='');return
+    if a.action=='generate':
+        if root.exists() or state.exists(): raise RuntimeError('refusing to reuse an identity or state directory')
+        password=getpass.getpass('New local Syncthing GUI password: ')
+        if len(password)<12 or '\n' in password: raise RuntimeError('use a password of at least 12 characters')
+        (root/'config').mkdir(parents=True,mode=0o700);state.mkdir(parents=True,mode=0o700)
+        run(['podman','run','-i','--network=none']+args_for(root,state)+[IMAGE,'generate','--config=/config','--data=/state','--no-port-probing','--gui-user=operator','--gui-password=-'],(password+'\n').encode())
+        password=None
+        public=run(['podman','run','--network=none']+args_for(root,state)+[IMAGE,'device-id','--config=/config','--data=/state']).decode().strip()
+        atomic(root/'device-id.txt',(identity(public)+'\n').encode())
+        save(root/'config/config.xml',harden(load_xml(root/'config/config.xml')))
+        print('Fresh identity generated and disabled. Public ID: '+public);return
+    if not root.is_dir() or not state.is_dir(): raise RuntimeError('configuration/state directory missing')
+    lockfd=os.open(root/'.admin.lock',os.O_CREAT|os.O_WRONLY|os.O_NOFOLLOW,0o600)
+    with os.fdopen(lockfd,'w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        if a.action=='stop':
+            names=run(['podman','ps','--format','{{.Names}}']).decode().splitlines()
+            if name in names: run(['podman','stop','--time','30',name])
+        inactive([root/'config',state])
+        path=root/'config/config.xml';tree=harden(load_xml(path))
+        if a.action=='pair':
+            if not a.role or not all((a.nas_id,a.laptop_id,a.android_id)):
+                raise RuntimeError('supply --role and all three public ID files')
+            ids={peer:identity(getattr(a,peer+'_id').read_text()) for peer in ('nas','laptop','android')}
+            tree=pair(tree,a.role,identity((root/'device-id.txt').read_text()),ids)
+        save(path,tree)
+        if a.action=='start':
+            if not 1024<=a.port<=65535: raise RuntimeError('GUI port outside allowed range')
+            tree=harden(tree,True);save(path,tree)
+            try:
+                run(['podman','run','-d','--name',name,'--network=pasta:--ipv4-only','-p','127.0.0.1:'+str(a.port)+':8384']+
+                    args_for(root,state)+[IMAGE,'serve','--config=/config','--data=/state','--no-browser','--no-restart'])
+            except BaseException:
+                save(path,harden(tree));raise
+            print('Temporary authenticated GUI: host 127.0.0.1:'+str(a.port)+'. No data mounts or sync-port publication.')
+        else: print('Saved paused configuration; GUI disabled. No private key or API token exported.')
+
+if __name__=='__main__':
+    try: main()
+    except (RuntimeError,OSError,ValueError,ET.ParseError) as error:
+        print('syncthing-admin: '+str(error),file=sys.stderr);sys.exit(1)

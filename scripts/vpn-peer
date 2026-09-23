@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""NAS Linux profile issuance and explicit peer configuration transactions.
+Secrets go only to private files/pipes, never command arguments or terminal output.
+"""
+import argparse
+import fcntl
+import ipaddress
+import json
+import os
+from pathlib import Path
+import stat
+import subprocess
+import sys
+import tempfile
+
+IMAGE = 'sha256:ad1b1f474b52b203fb42a64e016e822687e91b41c04707e5c083e97ad060db4e'
+
+def run(args,data=None):
+    r=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    if r.returncode: raise RuntimeError('operation failed: '+Path(args[0]).name+' '+args[1])
+    return r.stdout
+
+def container(command,data=None,mount=None,cap=False,shell=False):
+    args=['podman','run','--rm','--pull=never','--network=none','--read-only',
+          '--cap-drop=all','--security-opt=no-new-privileges','--pids-limit=64',
+          '--memory=128m']
+    if cap: args+=['--cap-add=NET_ADMIN']
+    if mount: args+=['--mount','type=bind,src='+str(mount)+',dst=/config,ro']
+    args+=['--entrypoint='+('/bin/busybox' if shell else '/usr/local/bin/stunmesh-go'),'-i',IMAGE]+command
+    return run(args,data)
+
+def private(path):
+    st=path.lstat()
+    if not stat.S_ISREG(st.st_mode) or st.st_mode&0o077 or st.st_size>16384:
+        raise RuntimeError('profile must be an owner-only regular file within size bounds')
+    return path.read_bytes()
+
+def atomic(path,data):
+    fd,name=tempfile.mkstemp(prefix='.vpn-peer-',dir=path.parent)
+    try:
+        with os.fdopen(fd,'wb') as f:
+            f.write(data);f.flush();os.fsync(f.fileno())
+        os.replace(name,path)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+def mappings(items):
+    result={}
+    for item in items:
+        name,ip=item.split('=',1)
+        if name in result: raise RuntimeError('duplicate hostname')
+        result[name]=ip
+    return result
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('action',choices=['issue-linux','activate','revoke'])
+    p.add_argument('--server-config',required=True,type=Path)
+    p.add_argument('--name',default='laptop')
+    p.add_argument('--address',default='10.77.0.253/32')
+    p.add_argument('--route',action='append',default=[])
+    p.add_argument('--hostname',action='append',default=[])
+    p.add_argument('--lan-hostname',action='append',default=[])
+    p.add_argument('--endpoint',default='192.168.0.10:51824')
+    p.add_argument('--out',type=Path)
+    p.add_argument('--profile',type=Path)
+    p.add_argument('--restart-group',action='store_true',help='also recreate the reviewed NAS Compose group; interrupts its VPN briefly')
+    a=p.parse_args(); config=a.server_config.resolve(strict=True)
+    if os.geteuid()==0: raise RuntimeError('run as the rootless NAS service user')
+    if any(c in str(config) for c in ',\n:'): raise RuntimeError('unsafe mount path')
+    lockfd=os.open(config.parent/'.vpn-peer.lock',os.O_CREAT|os.O_WRONLY|os.O_NOFOLLOW,0o600)
+    with os.fdopen(lockfd,'w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        server=json.loads(container(['linux-server','/config'],mount=config))
+        if a.action=='issue-linux':
+            if not a.out or not a.out.is_absolute(): raise RuntimeError('specify an absolute, private output path')
+            parent=a.out.parent
+            if not parent.exists(): parent.mkdir(mode=0o700)
+            st=parent.stat()
+            if st.st_uid!=os.getuid() or st.st_mode&0o077 or parent.is_symlink():
+                raise RuntimeError('output directory must be owner-only and not a symlink')
+            repo=subprocess.run(['git','-C',str(parent),'rev-parse','--show-toplevel'],capture_output=True)
+            if repo.returncode==0 and run(['git','-C',repo.stdout.decode().strip(),'remote']).strip():
+                raise RuntimeError('refusing issuance inside a repository with a remote')
+            address=ipaddress.ip_interface(a.address)
+            if any(address.ip in ipaddress.ip_network(r,strict=False) for r in server['peer_addresses']):
+                raise RuntimeError('address already authorized to a server peer')
+            template={'schema':'stunmesh-linux-v1','name':a.name,'address':a.address,
+                      'server_public_key':server['server_public_key'],'allowed_ips':a.route,
+                      'endpoint':a.endpoint,'stun_servers':server['stun_servers'],'opendht':server['opendht'],
+                      'hostnames':mappings(a.hostname),'lan_hostnames':mappings(a.lan_hostname)}
+            # Exclusive file creation before generation also rejects symlinks.
+            fd=os.open(a.out,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            try:
+                with os.fdopen(fd,'wb') as out:
+                    data=container(['linux-issue'],json.dumps(template).encode())
+                    summary=container(['linux-check'],data)
+                    out.write(data);out.flush();os.fsync(out.fileno())
+            except BaseException:
+                a.out.unlink();raise
+            print(summary.decode(),end='')
+            print('Issued confidential profile. No server peer was changed.')
+            return
+        if not a.profile: raise RuntimeError('--profile is required')
+        data=private(a.profile)
+        summary=container(['linux-check'],data)
+        files=json.loads(container(['linux-'+a.action,'/config'],data,mount=config))
+        if set(files)!={'wg0.conf','stunmesh.yml'}: raise RuntimeError('unexpected candidate files')
+        with tempfile.TemporaryDirectory(prefix='.vpn-peer-check-',dir=config.parent) as directory:
+            candidate=Path(directory)
+            for name,value in files.items(): atomic(candidate/name,value.encode())
+            container(['sh','-ec','/bin/busybox ip link add wg0 type wireguard; /usr/local/bin/wg setconf wg0 /config/wg0.conf; /usr/local/bin/stunmesh-go linux-config-check /config/stunmesh.yml'],mount=candidate,cap=True,shell=True)
+            originals={name:(config/name).read_bytes() for name in files}
+            try:
+                for name,value in files.items(): atomic(config/name,value.encode())
+                if a.restart_group:
+                    run(['podman-compose','-f',str(config.parent/'compose.yml'),'up','-d','--force-recreate'])
+            except BaseException:
+                for name,value in originals.items(): atomic(config/name,value)
+                if a.restart_group:
+                    try: run(['podman-compose','-f',str(config.parent/'compose.yml'),'up','-d','--force-recreate'])
+                    except RuntimeError: print('Rollback files restored; Compose restart also failed. Use the LAN administration path.',file=sys.stderr)
+                raise
+        print(summary.decode(),end='')
+        print('Private configuration updated; commit only wg0.conf and stunmesh.yml.')
+        print('Compose group recreated.' if a.restart_group else 'Live peer is unchanged until the reviewed VPN/forwarder group is recreated.')
+
+if __name__=='__main__':
+    try: main()
+    except (OSError,RuntimeError,ValueError,KeyError):
+        # Exception values may contain parser input. Deliberately no traceback.
+        print('vpn-peer: refused or failed; check private paths, peer collisions, image and schema. No secret output.',file=sys.stderr)
+        sys.exit(1)

@@ -1,0 +1,14 @@
+[Unit]
+Description=Reject VPN service routes when the tunnel is down
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/stunmesh/vpn-client guard
+RemainAfterExit=yes
+
+[Install]
+WantedBy=network-pre.target

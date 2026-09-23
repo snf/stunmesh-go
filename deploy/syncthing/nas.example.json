@@ -1,0 +1,11 @@
+{
+  "approved": false,
+  "config_root": "/srv/syncthing-v2",
+  "state_dir": "/srv/data/.service-state/syncthing-v2",
+  "volume_record": "/srv/containers/service-tools/volume.json",
+  "enabled_folders": [],
+  "mounts": {
+    "/android-device": "/srv/data/device-backups/android-device",
+    "/data/projects": "/srv/data/projects"
+  }
+}

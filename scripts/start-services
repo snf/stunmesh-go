@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Run after the owner's existing encrypted-volume unlock/mount script."""
+import json
+import os
+from pathlib import Path
+import sys
+from nas_common import run,volume_guard
+
+try:
+    if os.geteuid()==0: raise RuntimeError('run as operator, not host root')
+    tools=Path('/srv/containers/service-tools')
+    volume_guard(tools/'volume.json',['/srv/data/photos'])
+    actual=Path('/exports/photos').stat();expected=Path('/srv/data/photos').stat()
+    if (actual.st_dev,actual.st_ino)!=(expected.st_dev,expected.st_ino):
+        raise RuntimeError('existing fotos bind mount does not match the unlocked volume')
+    # Capture Compose output: the legacy Samba command contains credentials.
+    run(['podman','compose','-f','/srv/containers/samba-compose.yml','--in-pod=false','up','-d'])
+    run(['podman-compose','-f','/srv/containers/stunmesh-audit-trial/compose.yml','up','-d'])
+    settings=Path('/srv/containers/syncthing-v2.settings.json')
+    running=run(['podman','ps','--format','{{.Names}}']).decode().splitlines()
+    if json.loads(settings.read_text()).get('approved') is True and 'syncthing-v2' not in running:
+        run([str(tools/'syncthing-service'),'start','--manifest',str(settings)])
+    print('Samba/VPN started. Syncthing starts only with its approved manifest. Restic is not started here.')
+except (RuntimeError,OSError,ValueError,KeyError) as error:
+    print('start-services: '+str(error),file=sys.stderr);sys.exit(1)

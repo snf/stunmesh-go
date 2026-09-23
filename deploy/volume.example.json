@@ -1,0 +1,6 @@
+{
+  "mountpoint": "/srv/data",
+  "source": "/dev/mapper/ciphered",
+  "fstype": "xfs",
+  "uuid": "RECORD_THE_UNLOCKED_FILESYSTEM_UUID"
+}

@@ -1,0 +1,27 @@
+# PROPOSAL ONLY. Not loaded by any script or image. Review/test inside the
+# rootless VPN network namespace before activation; never run on the NAS host.
+# Requires a separately pinned nftables tools image and net.ipv4.ip_forward=1
+# in that namespace. Confirm the pasta uplink name before using these rules.
+define uplink = "enp2s0"
+table ip home_map {
+    chain prerouting {
+        type nat hook prerouting priority dstnat; policy accept;
+        # The NAS LAN address also exists inside pasta. Avoid routing it back
+        # to this namespace: use pasta's explicit host-access address instead.
+        iifname "wg0" ip daddr 10.77.1.31 dnat to 169.254.1.2
+        iifname "wg0" ip daddr 10.77.1.1-10.77.1.254 dnat ip prefix to ip daddr map { 10.77.1.0/24 : 192.168.0.0/24 }
+    }
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+        # This table governs forwarded traffic in this namespace only. Current
+        # local .0.x service listeners traverse INPUT, not this chain.
+        iifname $uplink oifname "wg0" ct state established,related accept
+        iifname "wg0" oifname $uplink ip saddr 10.77.0.0/24 ip daddr 192.168.0.1-192.168.0.254 accept
+        iifname "wg0" oifname $uplink ip saddr 10.77.0.0/24 ip daddr 169.254.1.2 accept
+    }
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname $uplink ip saddr 10.77.0.0/24 ip daddr 192.168.0.0/24 masquerade
+        oifname $uplink ip saddr 10.77.0.0/24 ip daddr 169.254.1.2 masquerade
+    }
+}

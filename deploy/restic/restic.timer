@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly NAS backup — do not install/enable before approval and pilot
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=restic.service
+
+[Install]
+WantedBy=timers.target

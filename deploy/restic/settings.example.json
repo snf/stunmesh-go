@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "metadata_reviewed": false,
+  "volume_record": "/srv/containers/service-tools/volume.json",
+  "repository": "",
+  "region": "us-east-1",
+  "storage_class": "DEEP_ARCHIVE",
+  "sources": {},
+  "cache": "/srv/data/.service-state/restic/cache",
+  "state": "/srv/data/.service-state/restic/state",
+  "password_file": "/srv/containers/restic/repository-password",
+  "credentials_file": "/srv/containers/restic/aws-credentials"
+}
