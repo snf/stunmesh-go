@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -109,7 +110,26 @@ func TestHostLifecycleInIsolatedNetwork(t *testing.T) {
 	if err != nil || !bytes.Contains(b, []byte("dev "+Interface)) {
 		t.Fatal("active route did not override guard")
 	}
-	if err := r.Cleanup(p); err != nil {
+	ownedPath := filepath.Join(t.TempDir(), "interface.json")
+	if err := r.CleanupOwned(p, ownedPath); err != nil {
+		t.Fatal(err)
+	}
+	iface, err := net.InterfaceByName(Interface)
+	if err != nil {
+		t.Fatal("missing receipt must not remove an existing matching identity")
+	}
+	wrong, _ := json.Marshal(receipt{iface.Index + 1, p.PublicKey()})
+	if err := WriteNew(ownedPath, wrong); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.CleanupOwned(p, ownedPath); err == nil {
+		t.Fatal("foreign interface index accepted")
+	}
+	correct, _ := json.Marshal(receipt{iface.Index, p.PublicKey()})
+	if err := os.WriteFile(ownedPath, correct, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.CleanupOwned(p, ownedPath); err != nil {
 		t.Fatal(err)
 	}
 	if err := exec.Command(ip[0], append(ip[1:], "route", "get", "10.77.0.1")...).Run(); err == nil {

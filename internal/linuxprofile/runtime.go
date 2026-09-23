@@ -2,7 +2,9 @@ package linuxprofile
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -76,6 +78,48 @@ func (r Runtime) Setup(p Profile, dir string) (err error) {
 }
 
 func Run(ctx context.Context, p Profile) error {
+	return run(ctx, p, "")
+}
+
+// Host mode uses one root-owned runtime directory supplied by systemd. This
+// receipt prevents ExecStopPost from removing an interface when ExecStartPre
+// refused an already-existing interface, even one with the same public key.
+const OwnershipFile = "/ownership/interface.json"
+
+type receipt struct {
+	Index     int    `json:"ifindex"`
+	PublicKey string `json:"public_key"`
+}
+
+func RunOwned(ctx context.Context, p Profile) error { return run(ctx, p, OwnershipFile) }
+
+func (r Runtime) CleanupOwned(p Profile, path string) error {
+	b, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return errors.New("cannot read interface ownership receipt")
+	}
+	var owned receipt
+	if json.Unmarshal(b, &owned) != nil || owned.PublicKey != p.PublicKey() {
+		return errors.New("invalid interface ownership receipt")
+	}
+	iface, err := net.InterfaceByName(Interface)
+	if err == nil {
+		if iface.Index != owned.Index {
+			return errors.New("refusing a replacement interface")
+		}
+		if err = r.Cleanup(p); err != nil {
+			return err
+		}
+	} else if r.ip("link", "show", "dev", Interface) == nil {
+		return errors.New("cannot verify interface index")
+	}
+	return os.Remove(path)
+}
+
+func run(ctx context.Context, p Profile, ownership string) error {
 	dir, err := os.MkdirTemp("/run", "wg-")
 	if err != nil {
 		return errors.New("cannot allocate private runtime directory")
@@ -86,6 +130,17 @@ func Run(ctx context.Context, p Profile) error {
 		return err
 	}
 	defer r.Cleanup(p)
+	if ownership != "" {
+		iface, err := net.InterfaceByName(Interface)
+		if err != nil {
+			return errors.New("cannot record owned interface")
+		}
+		b, _ := json.Marshal(receipt{iface.Index, p.PublicKey()})
+		if err = WriteNew(ownership, b); err != nil {
+			return err
+		}
+		defer r.CleanupOwned(p, ownership)
+	}
 	yml, err := p.Discovery()
 	if err != nil {
 		return err

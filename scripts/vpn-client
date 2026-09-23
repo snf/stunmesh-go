@@ -90,6 +90,10 @@ def dependencies(info):
                 raise RuntimeError('hostname used by mount/automount configuration: '+str(path))
 
 def collision_check(info):
+    rules=json.loads(run(['ip','-j','rule','show']))
+    expected={(0,'local'),(32766,'main'),(32767,'default')}
+    if len(rules)!=3 or {(r.get('priority'),r.get('table')) for r in rules}!=expected:
+        raise RuntimeError('custom IPv4 policy rules require review before route installation')
     routes = json.loads(run(['ip','-j','route','show','table','main']))
     for route in routes:
         dst = route.get('dst','default')
@@ -101,6 +105,9 @@ def collision_check(info):
     links = json.loads(run(['ip','-j','link','show']))
     if any(x['ifname']=='wg0' for x in links):
         raise RuntimeError('wg0 already exists')
+    addresses=json.loads(run(['ip','-j','address','show']))
+    if any(a.get('local')==info['address'].split('/')[0] for link in addresses for a in link.get('addr_info',[])):
+        raise RuntimeError('client address is already assigned on this host')
 
 def guard_routes(info, remove=False):
     for route in info['allowed_ips']:
@@ -146,11 +153,14 @@ NoNewPrivileges=true
 ReadOnly=true
 PidsLimit=128
 Volume={BASE}/laptop.json:/config/laptop.json:ro
+Volume=/run/stunmesh-host:/ownership:rw
 Tmpfs=/run:rw,nosuid,nodev,noexec,size=4m,mode=755
 Entrypoint=/usr/local/bin/stunmesh-go
-Exec=linux-run /config/laptop.json
+Exec=linux-run-owned /config/laptop.json
 
 [Service]
+RuntimeDirectory=stunmesh-host
+RuntimeDirectoryMode=0700
 ExecStartPre={HELPER} preflight
 ExecStopPost={HELPER} cleanup
 Restart=on-failure
@@ -240,10 +250,13 @@ def main():
     if a.action=='guard': guard_routes(info)
     elif a.action=='preflight': preflight(info)
     elif a.action=='cleanup':
+        if not Path('/run/stunmesh-host/interface.json').exists():
+            return
         run(['podman','run','--rm','--pull=never','--network=host','--read-only',
              '--cap-drop=all','--cap-add=NET_ADMIN','--security-opt=no-new-privileges',
              '--pids-limit=32','--entrypoint=/usr/local/bin/stunmesh-go',
-             '-v',str(BASE/'laptop.json')+':/config/laptop.json:ro',IMAGE,'linux-clean','/config/laptop.json'])
+             '-v',str(BASE/'laptop.json')+':/config/laptop.json:ro',
+             '-v','/run/stunmesh-host:/ownership:rw',IMAGE,'linux-clean-owned','/config/laptop.json'])
     elif a.action=='start':
         preflight(info); run(['systemctl','start',SERVICE]); print('Started; verify routes and authenticated handshakes.')
     elif a.action=='stop': run(['systemctl','stop',SERVICE]); print('Stopped. VPN service addresses remain unreachable.')

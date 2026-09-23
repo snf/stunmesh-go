@@ -131,7 +131,7 @@ func linuxCommand(args []string) error {
 		}
 		return json.NewEncoder(os.Stdout).Encode(p.Public())
 	}
-	if len(args) != 2 || (args[0] != "linux-run" && args[0] != "linux-clean") {
+	if len(args) != 2 || (args[0] != "linux-run" && args[0] != "linux-clean" && args[0] != "linux-run-owned" && args[0] != "linux-clean-owned") {
 		return errors.New("invalid Linux operation")
 	}
 	p, err := linuxprofile.Load(args[1])
@@ -141,7 +141,13 @@ func linuxCommand(args []string) error {
 	if args[0] == "linux-clean" {
 		return linuxprofile.Native().Cleanup(p)
 	}
+	if args[0] == "linux-clean-owned" {
+		return linuxprofile.Native().CleanupOwned(p, linuxprofile.OwnershipFile)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	if args[0] == "linux-run-owned" {
+		return linuxprofile.RunOwned(ctx, p)
+	}
 	return linuxprofile.Run(ctx, p)
 }
