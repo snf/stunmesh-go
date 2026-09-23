@@ -91,10 +91,18 @@ scan. Existing client private keys were not in those provisioning results.
 The new image writes confidential outputs only to exclusive 0600 files; helper
 containers also disable logging. The duplicate stdout Linux provisioner was
 deleted and regression tests added. Existing server/peer/Samba rotation remains
-deferred; the unused laptop identity must be replaced before handoff, currently
-blocked by NAS keyring quota exhaustion. Journal evidence/private Git history
-were not erased. The v0.2.0 prerelease contains only reviewed code/image assets;
-its handoff explicitly blocks installation until NAS/profile recovery is done.
+deferred; the unused laptop identity was revoked/replaced after the owner
+raised the NAS keyring quota. Recovery checked 194 new journal entries with
+zero matches for the relevant old/new credentials. Journal evidence/private
+Git history were not erased. The v0.2.0 prerelease contains only reviewed
+code/image assets; the subsequent recovery clears its initial installation hold.
 These checks cannot prove absence of unknown/obfuscated secrets.
 
-The published v0.2.0 OCI archive and SHA256SUMS were downloaded again; both match the recorded expected SHA-256. Publication does not resolve the documented journal/tool-output incidents or the NAS deployment blocker.
+The published v0.2.0 OCI archive and SHA256SUMS were downloaded again; both match the recorded expected SHA-256. Publication does not resolve the documented journal/tool-output incidents. NAS deployment was separately recovered; older affected credentials still need rotation.
+
+After laptop identity replacement, the scan included both the current and retired
+laptop credentials plus the existing NAS/client/Samba secret set. At parent
+`ec6b0af`, 644 commits, 2179 blobs, 417 working files and the five-file OCI image
+yielded zero known-secret matches; the 23 pattern and 2756 key-candidate groups
+were unchanged from the reviewed set. The recovery documentation and evidence
+were included as working files.

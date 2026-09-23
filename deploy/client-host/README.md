@@ -6,11 +6,10 @@ NAS stays rootless. This laptop service needs host root and NET_ADMIN to install
 normal host routes; it has no UI, default VPN route, extra daemon or firewall rule.
 Use the [operations guide](../../OPERATIONS.md) for NAS, sync and backup status.
 
-**Hold installation:** the NAS keyring quota currently blocks VPN restart and
-replacement of the journal-exposed unused laptop identity. The prerelease
-commands below are the handoff procedure after recovery. Do not download the
-existing private profile until replacement is
-confirmed in the operations guide.
+The NAS VPN has recovered and its unused laptop identity has been replaced.
+The commands below prepare the actual laptop installation, which has not been
+performed. Existing server/older-client credential rotation remains deferred;
+review that residual risk in the operations guide.
 
 ## Retrieve the one device-specific file and verified image
 
@@ -18,8 +17,8 @@ The NAS reserves a separate laptop identity at `10.77.0.253/32`.
 Its confidential canonical profile stays in private `/srv` Git. The previous
 rootless `.254` identity is retained for rollback. Do not copy either identity
 onto a second machine or commit the profile to this public repository.
-The first unused identity needs replacement after a provisioning journal
-exposure. See the unresolved NAS/older-client
+The first unused identity was revoked/replaced after a provisioning journal
+exposure; retrieve only the current canonical file. See the unresolved NAS/older-client
 [credential rotation](../../OPERATIONS.md#coordinated-rotation-not-yet-applied).
 
 ```sh
