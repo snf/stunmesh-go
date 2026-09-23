@@ -106,3 +106,11 @@ laptop credentials plus the existing NAS/client/Samba secret set. At parent
 yielded zero known-secret matches; the 23 pattern and 2756 key-candidate groups
 were unchanged from the reviewed set. The recovery documentation and evidence
 were included as working files.
+
+The startup-helper continuation at `e9b19bc` was scanned across 647 commits,
+2195 blobs, 417 working files and the unchanged OCI image: zero known-secret
+matches, with the same 23 pattern and 2756 key-candidate groups. During the
+actual NAS startup check, 36 new journal entries also had zero matches for the
+checked current VPN/Samba credentials. These checks do not rotate previously
+exposed credentials. Subsequent evidence contains only counts, public container
+names and commit identifiers.
