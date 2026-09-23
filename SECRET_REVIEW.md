@@ -55,9 +55,10 @@ This finding is limited to the source/image publication. The separate NAS invent
 ## Direct client/services publication review — 2026-09-23
 
 - Scanned every locally available Go Git object/ref/reflog and current
-  tracked/nonignored files. The full scan at `0c4be0e` covered 640 commits,
-  2,148 blobs, 1,912 trees and 15 tag objects, plus 415 current files. Final
-  documentation/staging receives a separate check before publication.
+  tracked/nonignored files. The full scan at `2c10ce4` covered 643 commits,
+  2,176 blobs, 1,925 trees and 15 pre-existing tag objects, plus 416 current files.
+  Staged documentation was checked before publication; the new annotated tag
+  and release body contain only reviewed public metadata.
 - Verified the new OCI archive and every blob, then scanned metadata and all
   five runtime files. Image ID
   `sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb`;
@@ -95,3 +96,5 @@ blocked by NAS keyring quota exhaustion. Journal evidence/private Git history
 were not erased. The v0.2.0 prerelease contains only reviewed code/image assets;
 its handoff explicitly blocks installation until NAS/profile recovery is done.
 These checks cannot prove absence of unknown/obfuscated secrets.
+
+The published v0.2.0 OCI archive and SHA256SUMS were downloaded again; both match the recorded expected SHA-256. Publication does not resolve the documented journal/tool-output incidents or the NAS deployment blocker.
