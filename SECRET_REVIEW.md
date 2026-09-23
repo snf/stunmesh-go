@@ -1,5 +1,11 @@
 # Credential review before the release commit — 2026-09-22
 
+**2026-09-23 update:** the new Linux/services source and image publication review
+is recorded at the end of this file. The NAS Samba tool-output incident is
+separate; those credentials remain compromised and were re-exposed by a masking
+error in the latest session. The older result below applies to the source/APK
+material it lists, not to NAS credentials.
+
 **Result: no real credential detected in either repository, its available local Git history, or the signed release APK. No compromised credential was identified for rotation.** Synthetic test keys are intentionally public and must never be used for real peers. This is a bounded review, not proof that arbitrary encoded or unknown secrets cannot exist.
 
 ## Reviewed material
@@ -45,3 +51,46 @@ The owner requested publication under `operator` after confirming the laptop's r
 - Added ignore guards for real `wg*.conf`, `stunmesh.yml` and a client `config/` directory; placeholder `*.example` files remain tracked. The actual laptop config, enrollment material, ADB credentials, APK signing material and NAS private repository are not included in the GitHub upload. Android is unchanged by this publication.
 
 This finding is limited to the source/image publication. The separate NAS inventory incident in `CLIENT_PROGRESS.md` exposed Samba credentials in tool output; those still require rotation. No additional real credential leak was found in this publication review. Pattern matching and known-value comparisons cannot prove that an unknown or deliberately obfuscated secret is absent.
+
+## Direct client/services publication review — 2026-09-23
+
+- Scanned every locally available Go Git object/ref/reflog and current
+  tracked/nonignored files. The full scan at `0c4be0e` covered 640 commits,
+  2,148 blobs, 1,912 trees and 15 tag objects, plus 415 current files. Final
+  documentation/staging receives a separate check before publication.
+- Verified the new OCI archive and every blob, then scanned metadata and all
+  five runtime files. Image ID
+  `sha256:7203a28d29c83d4d64561c049bba967d9b96d2e3c7c1709c4626ff3cd0e764eb`;
+  archive SHA-256
+  `afa228bc05e26577aa81c193ccba5dd66273d207c6fb0d9182a473bfcbddc2d4`.
+- In-memory exact/encoding checks additionally included NAS WG configuration
+  keys/PSKs, the new NAS-issued laptop profile, previous rootless laptop,
+  retired external-test identity and active Samba passwords, including their
+  short literal forms. Existing enrollment/signing comparisons also ran.
+  **Zero known-secret matches.** No phone private key was extracted.
+- All 2,756 base64 candidate groups match the previously reviewed set of
+  dependency hashes/public values/synthetic fixtures. No new image base64
+  candidate is absent from the previously reviewed image. The 23 credential
+  pattern groups include the prior placeholders/canaries plus four new source
+  expressions: official `wg` command names and test-key concatenation.
+  None contains a real issued profile or credential; no sensitive public path
+  was found. No credential-validation request was sent to an external service.
+- Android source and its existing signed APK are unchanged. NAS `/srv` retains
+  intended canonical secrets in its local-only Git repository, as authorized;
+  that repository, real profiles and temporary test credentials are excluded
+  from public commits and release assets.
+
+Two incidents were disclosed and documented in `EXECUTION_PROGRESS.md`: the
+Samba masking failure re-exposed passwords in tool output, and the initial
+provisioner put the NAS WG private key, configured peer PSKs and unused laptop
+private key into local journald logs. Capturing Podman stdout did not prevent
+log retention. These are real exposures despite the clean public source/image
+scan. Existing client private keys were not in those provisioning results.
+
+The new image writes confidential outputs only to exclusive 0600 files; helper
+containers also disable logging. The duplicate stdout Linux provisioner was
+deleted and regression tests added. Existing server/peer/Samba rotation remains
+deferred; the unused laptop identity must be replaced before handoff, currently
+blocked by NAS keyring quota exhaustion. Journal evidence/private Git history
+were not erased. No v0.2.0 release is published while that recovery is pending.
+These checks cannot prove absence of unknown/obfuscated secrets.
