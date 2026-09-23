@@ -82,7 +82,7 @@ func TestHostLifecycleInIsolatedNetwork(t *testing.T) {
 		t.Skip("requires scripts/sandbox.py --net-admin")
 	}
 	wg := "/artifacts/wg"
-	ip := []string{"/work/image-context-handover/build/image/ld-musl-x86_64.so.1", "/work/image-context-handover/build/image/busybox", "ip"}
+	ip := []string{"/artifacts/image-tools/ld-musl-x86_64.so.1", "/artifacts/image-tools/busybox", "ip"}
 	r := Runtime{ip, wg}
 	p := fixture()
 	// Prove a foreign interface survives startup and cleanup attempts.

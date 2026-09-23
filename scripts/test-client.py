@@ -10,6 +10,9 @@ import json
 loader=importlib.machinery.SourceFileLoader('client',str(Path(__file__).with_name('vpn-client')))
 spec=importlib.util.spec_from_loader(loader.name,loader)
 client=importlib.util.module_from_spec(spec);loader.exec_module(client)
+loader=importlib.machinery.SourceFileLoader('peer',str(Path(__file__).with_name('vpn-peer')))
+spec=importlib.util.spec_from_loader(loader.name,loader)
+peer=importlib.util.module_from_spec(spec);loader.exec_module(peer)
 
 class Hosts(unittest.TestCase):
     info={'hostnames':{'nas':'10.77.0.1','home23':'10.77.0.23'},'lan_hostnames':{'nas-lan':'192.168.0.10','home23-lan':'192.168.0.12'}}
@@ -41,5 +44,11 @@ class Hosts(unittest.TestCase):
             with patch.object(client,'run',side_effect=execute):
                 client.guard_routes({'allowed_ips':['10.77.0.1/32']})
             self.assertEqual(len(calls),1)
+    def test_provisioning_disables_container_log_retention(self):
+        with patch.object(peer,'run',return_value=b'') as execute:
+            peer.container(['linux-issue','/output/profile.json'],b'{}',output=Path('/private/temporary'))
+        args=execute.call_args.args[0]
+        self.assertIn('--log-driver=none',args)
+        self.assertIn('type=bind,src=/private/temporary,dst=/output,rw',args)
 
 if __name__=='__main__': unittest.main()

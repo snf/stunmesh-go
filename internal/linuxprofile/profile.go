@@ -175,8 +175,8 @@ func (p Profile) Discovery() ([]byte, error) {
 }
 
 // Issue accepts a secret-free template and generates keys using the official wg
-// command. Output is confidential; callers must capture it in an exclusive 0600
-// file. This function is used only by the one-shot provision tool.
+// command. Returned bytes are confidential; the one-shot CLI writes them to an
+// exclusive 0600 file, never to stdout/stderr (including captured container logs).
 func Issue(raw []byte, wg string) ([]byte, error) {
 	var fields map[string]json.RawMessage
 	if len(raw) > MaxBytes || validation.DecodeJSON(raw, &fields) != nil {

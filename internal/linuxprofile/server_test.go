@@ -32,13 +32,9 @@ func TestServerEnrollmentTransaction(t *testing.T) {
 	if strings.Contains(string(public), key.String()) {
 		t.Fatal("server private key disclosed")
 	}
-	b, err := s.Edited(p, false)
+	candidate, err := s.Edited(p, false)
 	if err != nil {
 		t.Fatal(err)
-	}
-	var candidate map[string]string
-	if json.Unmarshal(b, &candidate) != nil {
-		t.Fatal("bad output")
 	}
 	if !strings.Contains(candidate["wg0.conf"], "AllowedIPs = 10.77.0.253/32\n") || strings.Contains(candidate["wg0.conf"], "AllowedIPs = 10.77.0.1/32") {
 		t.Fatal("wrong server peer route direction")
@@ -52,23 +48,25 @@ func TestServerEnrollmentTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err = s.Edited(p, false)
+	candidate, err = s.Edited(p, false)
 	if err != nil {
 		t.Fatal("repeat enrollment failed", err)
 	}
-	if strings.Count(string(b), "BEGIN LINUX") != 1 {
+	if strings.Count(candidate["wg0.conf"], "BEGIN LINUX") != 1 {
 		t.Fatal("duplicate enrollment")
 	}
 	s, err = LoadServer(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err = s.Edited(p, true)
+	candidate, err = s.Edited(p, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(b), p.PresharedKey) || strings.Contains(string(b), p.PublicKey()) {
-		t.Fatal("revocation retained peer")
+	for _, text := range candidate {
+		if strings.Contains(text, p.PresharedKey) || strings.Contains(text, p.PublicKey()) {
+			t.Fatal("revocation retained peer")
+		}
 	}
 	s, err = LoadServer(dir)
 	if err != nil {

@@ -89,11 +89,14 @@ func run() error {
 }
 
 func linuxCommand(args []string) error {
+	if len(args) == 0 {
+		return errors.New("missing Linux operation")
+	}
 	if len(args) == 2 && args[0] == "linux-config-check" {
 		_, err := config.Load(args[1], "")
 		return err
 	}
-	if len(args) == 2 && (args[0] == "linux-server" || args[0] == "linux-activate" || args[0] == "linux-revoke") {
+	if (len(args) == 2 && args[0] == "linux-server") || (len(args) == 3 && (args[0] == "linux-activate" || args[0] == "linux-revoke")) {
 		s, err := linuxprofile.LoadServer(args[1])
 		if err != nil {
 			return err
@@ -105,14 +108,9 @@ func linuxCommand(args []string) error {
 		if err != nil {
 			return err
 		}
-		b, err := s.Edited(p, args[0] == "linux-revoke")
-		if err != nil {
-			return err
-		}
-		_, err = os.Stdout.Write(b)
-		return err
+		return s.WriteEdited(p, args[0] == "linux-revoke", args[2])
 	}
-	if args[0] == "linux-issue" && len(args) == 1 {
+	if args[0] == "linux-issue" && len(args) == 2 {
 		b, err := io.ReadAll(io.LimitReader(os.Stdin, linuxprofile.MaxBytes+1))
 		if err != nil {
 			return err
@@ -121,8 +119,7 @@ func linuxCommand(args []string) error {
 		if err != nil {
 			return err
 		}
-		_, err = os.Stdout.Write(append(b, '\n'))
-		return err
+		return linuxprofile.WriteNew(args[1], append(b, '\n'))
 	}
 	if args[0] == "linux-check" && len(args) == 1 {
 		p, err := linuxprofile.Read(os.Stdin)

@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 # Updated only with a verified, tested OCI build. Never supplied by the profile.
-IMAGE = "sha256:ad1b1f474b52b203fb42a64e016e822687e91b41c04707e5c083e97ad060db4e"
+IMAGE = "sha256:be3d90df55231ad09cdb4641d39c99410b7d876b64772c6320b044e6e861f3b9"
 BASE = Path('/etc/stunmesh')
 HELPER = Path('/usr/local/libexec/stunmesh/vpn-client')
 QUADLET = Path('/etc/containers/systemd/stunmesh-host.container')
@@ -37,7 +37,7 @@ def private(path):
     return path.read_bytes()
 
 def inspect_profile(path):
-    return json.loads(run(['podman','run','--rm','--pull=never','--network=none',
+    return json.loads(run(['podman','run','--rm','--pull=never','--network=none','--log-driver=none',
         '--read-only','--cap-drop=all','--security-opt=no-new-privileges',
         '--pids-limit=32','--memory=64m','--entrypoint=/usr/local/bin/stunmesh-go',
         '-i',IMAGE,'linux-check'], private(path)))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NAS Linux profile issuance and explicit peer configuration transactions.
-Secrets go only to private files/pipes, never command arguments or terminal output.
+Secrets go only to private files/stdin, never command arguments or logged output.
 """
 import argparse
 import fcntl
@@ -13,19 +13,20 @@ import subprocess
 import sys
 import tempfile
 
-IMAGE = 'sha256:ad1b1f474b52b203fb42a64e016e822687e91b41c04707e5c083e97ad060db4e'
+IMAGE = 'sha256:be3d90df55231ad09cdb4641d39c99410b7d876b64772c6320b044e6e861f3b9'
 
 def run(args,data=None):
     r=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     if r.returncode: raise RuntimeError('operation failed: '+Path(args[0]).name+' '+args[1])
     return r.stdout
 
-def container(command,data=None,mount=None,cap=False,shell=False):
-    args=['podman','run','--rm','--pull=never','--network=none','--read-only',
+def container(command,data=None,mount=None,output=None,cap=False,shell=False):
+    args=['podman','run','--rm','--pull=never','--network=none','--read-only','--log-driver=none',
           '--cap-drop=all','--security-opt=no-new-privileges','--pids-limit=64',
           '--memory=128m']
     if cap: args+=['--cap-add=NET_ADMIN']
     if mount: args+=['--mount','type=bind,src='+str(mount)+',dst=/config,ro']
+    if output: args+=['--mount','type=bind,src='+str(output)+',dst=/output,rw']
     args+=['--entrypoint='+('/bin/busybox' if shell else '/usr/local/bin/stunmesh-go'),'-i',IMAGE]+command
     return run(args,data)
 
@@ -93,9 +94,12 @@ def main():
             fd=os.open(a.out,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
             try:
                 with os.fdopen(fd,'wb') as out:
-                    data=container(['linux-issue'],json.dumps(template).encode())
-                    summary=container(['linux-check'],data)
-                    out.write(data);out.flush();os.fsync(out.fileno())
+                    with tempfile.TemporaryDirectory(prefix='.vpn-peer-issue-',dir=parent) as directory:
+                        candidate=Path(directory)
+                        container(['linux-issue','/output/profile.json'],json.dumps(template).encode(),output=candidate)
+                        data=private(candidate/'profile.json')
+                        summary=container(['linux-check'],data)
+                        out.write(data);out.flush();os.fsync(out.fileno())
             except BaseException:
                 a.out.unlink();raise
             print(summary.decode(),end='')
@@ -104,15 +108,14 @@ def main():
         if not a.profile: raise RuntimeError('--profile is required')
         data=private(a.profile)
         summary=container(['linux-check'],data)
-        files=json.loads(container(['linux-'+a.action,'/config'],data,mount=config))
-        if set(files)!={'wg0.conf','stunmesh.yml'}: raise RuntimeError('unexpected candidate files')
         with tempfile.TemporaryDirectory(prefix='.vpn-peer-check-',dir=config.parent) as directory:
             candidate=Path(directory)
-            for name,value in files.items(): atomic(candidate/name,value.encode())
+            container(['linux-'+a.action,'/config','/output'],data,mount=config,output=candidate)
+            files={name:(candidate/name).read_bytes() for name in ['wg0.conf','stunmesh.yml']}
             container(['sh','-ec','/bin/busybox ip link add wg0 type wireguard; /usr/local/bin/wg setconf wg0 /config/wg0.conf; /usr/local/bin/stunmesh-go linux-config-check /config/stunmesh.yml'],mount=candidate,cap=True,shell=True)
             originals={name:(config/name).read_bytes() for name in files}
             try:
-                for name,value in files.items(): atomic(config/name,value.encode())
+                for name,value in files.items(): atomic(config/name,value)
                 if a.restart_group:
                     run(['podman-compose','-f',str(config.parent/'compose.yml'),'up','-d','--force-recreate'])
             except BaseException:

@@ -1,5 +1,5 @@
 # Inputs are built/verified locally by scripts/prepare-image.py. No RUN, fetch,
-# repository-wide COPY, keys, configuration, provisioner or compiler in this image.
+# repository-wide COPY, keys, configuration or compiler in this image.
 # busybox + musl originate from the already approved Alpine manifest pinned in
 # build/inputs.json; only these two required files are retained.
 FROM scratch
