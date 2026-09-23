@@ -92,5 +92,6 @@ containers also disable logging. The duplicate stdout Linux provisioner was
 deleted and regression tests added. Existing server/peer/Samba rotation remains
 deferred; the unused laptop identity must be replaced before handoff, currently
 blocked by NAS keyring quota exhaustion. Journal evidence/private Git history
-were not erased. No v0.2.0 release is published while that recovery is pending.
+were not erased. The v0.2.0 prerelease contains only reviewed code/image assets;
+its handoff explicitly blocks installation until NAS/profile recovery is done.
 These checks cannot prove absence of unknown/obfuscated secrets.

@@ -7,14 +7,14 @@ normal host routes; it has no UI, default VPN route, extra daemon or firewall ru
 Use the [operations guide](../../OPERATIONS.md) for NAS, sync and backup status.
 
 **Hold installation:** the NAS keyring quota currently blocks VPN restart and
-replacement of the journal-exposed unused laptop identity. The release commands
-below are the handoff procedure after recovery; the v0.2.0 release is not yet
-published. Do not download the existing private profile until replacement is
+replacement of the journal-exposed unused laptop identity. The prerelease
+commands below are the handoff procedure after recovery. Do not download the
+existing private profile until replacement is
 confirmed in the operations guide.
 
 ## Retrieve the one device-specific file and verified image
 
-The NAS has issued and authorized a **new** laptop identity at `10.77.0.253/32`.
+The NAS reserves a separate laptop identity at `10.77.0.253/32`.
 Its confidential canonical profile stays in private `/srv` Git. The previous
 rootless `.254` identity is retained for rollback. Do not copy either identity
 onto a second machine or commit the profile to this public repository.
