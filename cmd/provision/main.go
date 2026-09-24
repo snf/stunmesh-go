@@ -31,7 +31,10 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: provision new|reply [flags]; -h lists required inputs")
+		return errors.New("usage: provision new|reply|server-new [flags]; -h lists required inputs")
+	}
+	if args[0] == "server-new" {
+		return serverNew(args[1:])
 	}
 	f := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	if args[0] == "new" {

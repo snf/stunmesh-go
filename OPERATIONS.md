@@ -10,3 +10,5 @@ This public repository contains software and generic deployment examples. Privat
 - Provisioning must write exclusive mode-0600 files and disable helper-container logging. Affected credentials from older logged provisioning or diagnostic output must be rotated, including consumers; deleting logs alone does not restore trust.
 
 Publishing this repository does not enroll peers, install a client, alter a NAS, rotate live credentials or enable backup. Complete the [device/service acceptance plan](DEVICE_TESTS.md) for the actual environment. The [release guide](RELEASES.md) identifies the verified container and companion Android APK.
+
+Android enrollment is available as a [single server-side command](deploy/enrollment/README.md), using a separate offline helper image. It generates a proposal and private QR; phone authorization and coordinated discovery migration remain separate.

@@ -1,0 +1,26 @@
+{
+  "qrencode": {
+    "version": "4.1.1",
+    "source": "https://codeload.github.com/fukuchi/libqrencode/tar.gz/refs/tags/v4.1.1",
+    "source_sha256": "5385bc1b8c2f20f3b91d258bf8ccc8cf62023935df2d2676b5b67049f31a049c",
+    "build": "static, WITHOUT_PNG=ON; SVG and terminal output only"
+  },
+  "executables_sha256": {
+    "provision": "2637da20720c935b96962d0fc8becd826e12ca3d4d5318dd5b29115c04156486",
+    "wg": "9a7f322c1877c0d46a49b94012ab2887d267bc2c922d7adee06f5ec4fea4c7f1",
+    "qrencode": "371b87bd85826d2e63fe2ae62c8bec85cb63ff371eef10da3abdf01c314e5699"
+  },
+  "image_config_id": "sha256:0d105339cef69a30275819c28984057aa5da7fee5d7d954565dbd666683332bb",
+  "build_environment": {
+    "go": "1.27.1; CGO_ENABLED=0, trimpath, buildvcs=false",
+    "gcc": "14.2.0",
+    "libc": "ldd (Debian GLIBC 2.41-12+deb13u3) 2.41",
+    "reproducibility": "Executable hashes pin this verified build; toolchain/libc changes require explicit rebuild and repinning."
+  },
+  "verification": {
+    "native_container": "issuance/reservations/idempotency/modes/private Git/remote refusal/TTY guard passed",
+    "independent_qr_decode": "ZXing 3.5.3 matched exact enrollment JSON",
+    "decoder_jar_sha256": "8d8064c1636fdaef7189dd9055c7d59950a8940a12f2293956446ec3c109fd82",
+    "long_lived_runtime_changes": false
+  }
+}

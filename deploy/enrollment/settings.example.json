@@ -1,0 +1,8 @@
+{
+  "image": "REPLACE_WITH_VERIFIED_ENROLLMENT_IMAGE_ID",
+  "server_config": "/srv/containers/stunmesh/config",
+  "output_root": "/srv/containers/stunmesh/enrollments",
+  "endpoint": "192.168.0.10:51824",
+  "routes": ["10.77.0.1/32"],
+  "private_git": "/srv"
+}

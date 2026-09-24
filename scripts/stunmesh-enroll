@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Issue/reopen a private Android enrollment; never authorize a live VPN peer."""
+import argparse
+import fcntl
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+from nas_common import key_capacity,mount_argument
+
+
+def run(args):
+    result=subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
+    if result.returncode: raise RuntimeError('operation failed; diagnostic output withheld')
+    return result.stdout
+
+
+def private(path,directory=False,max_bytes=16384):
+    st=path.lstat()
+    kind=stat.S_ISDIR if directory else stat.S_ISREG
+    if not kind(st.st_mode) or st.st_uid!=os.getuid() or st.st_mode&0o077:
+        raise RuntimeError('expected an owner-only file/directory, not a symlink')
+    if not directory and st.st_size>max_bytes: raise RuntimeError('configuration exceeds size bound')
+    return path
+
+
+def read(path):
+    return json.loads(private(path).read_bytes())
+
+
+def container(settings,command,config=False,output=None,render=None):
+    args=['podman','run','--rm','--pull=never','--network=none','--read-only',
+          '--log-driver=none','--cap-drop=all','--security-opt=no-new-privileges',
+          '--pids-limit=32','--memory=128m','--timeout=60']
+    if config: args+=['--mount',mount_argument(settings['server_config'],'/config',True)]
+    if output: args+=['--mount',mount_argument(output,'/output')]
+    if render:
+        args+=['--entrypoint=/usr/local/bin/qrencode','--mount',mount_argument(render,'/enrollment',True)]
+    return run(args+[settings['image'],*command])
+
+
+def reservations(root):
+    addresses=[]
+    for item in sorted(root.iterdir()):
+        if item.name.startswith('.'): continue
+        private(item,True)
+        data=read(item/'enrollment.json')
+        address=ipaddress.ip_interface(data['address'])
+        if address.version!=4 or address.network.prefixlen!=32:
+            raise RuntimeError('invalid pending phone address')
+        addresses.append(str(address))
+    return addresses
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('name',help='device label; an existing enrollment is reopened, never replaced')
+    parser.add_argument('--settings',type=Path,default=Path(__file__).with_name('enrollment-settings.json'))
+    parser.add_argument('--qr',action='store_true',help='display the confidential QR only on a trusted terminal')
+    args=parser.parse_args()
+    if os.geteuid()==0: raise RuntimeError('run as the ordinary rootless service user')
+    if not re.fullmatch('[a-z][a-z0-9-]{0,31}',args.name): raise RuntimeError('invalid device label')
+    if args.qr and not sys.stdout.isatty(): raise RuntimeError('--qr requires a terminal; use the saved private SVG otherwise')
+    settings=read(args.settings)
+    if set(settings)!={'image','server_config','output_root','endpoint','routes','private_git'}:
+        raise RuntimeError('unexpected enrollment settings')
+    if not re.fullmatch('sha256:[0-9a-f]{64}',settings['image']): raise RuntimeError('pin the helper image by ID')
+    if not isinstance(settings['routes'],list) or not settings['routes']: raise RuntimeError('select service routes')
+    repo=Path(settings['private_git']).resolve(strict=True)
+    root=Path(settings['output_root'])
+    if not root.is_absolute() or root.resolve()!=root or repo not in root.parents:
+        raise RuntimeError('enrollments must be inside the canonical private repository')
+    if run(['git','-C',str(repo),'rev-parse','--show-toplevel']).decode().strip()!=str(repo):
+        raise RuntimeError('unexpected private repository root')
+    if run(['git','-C',str(repo),'remote']).strip(): raise RuntimeError('refusing credential generation in a repository with remotes')
+    # Refuse before creating credentials if identity or unrelated staging needs attention.
+    run(['git','-C',str(repo),'var','GIT_AUTHOR_IDENT'])
+    if run(['git','-C',str(repo),'diff','--cached','--name-only']).strip():
+        raise RuntimeError('commit or unstage unrelated private changes first')
+    private(root,True)
+    config=Path(settings['server_config']).resolve(strict=True)
+    fd=os.open(config.parent/'.vpn-peer.lock',os.O_CREAT|os.O_WRONLY|os.O_NOFOLLOW,0o600)
+    with os.fdopen(fd,'w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        target=root/args.name
+        if target.exists() or target.is_symlink():
+            private(target,True)
+            data=read(target/'enrollment.json')
+            if data.get('schema')!='stunmesh-enroll-v2': raise RuntimeError('existing enrollment uses a different format')
+            private(target/'enrollment.svg',max_bytes=2*1024*1024)
+            state='Reusing existing enrollment'
+        else:
+            used=reservations(root)
+            key_capacity()
+            with tempfile.TemporaryDirectory(prefix='.enroll-',dir=root) as temporary:
+                stage=Path(temporary)
+                container(settings,['server-new','--config','/config','--out','/output',
+                    '--name',args.name,'--endpoint',settings['endpoint'],
+                    '--routes',','.join(settings['routes']),'--reserved',','.join(used)],config=True,output=stage)
+                data=read(stage/'enrollment.json')
+                # The image generated both files before making the reservation visible.
+                private(stage/'enrollment.svg',max_bytes=2*1024*1024)
+                stage.rename(target)
+            state='Created enrollment'
+        # SVG is derived; track only the canonical confidential JSON, never stdout.
+        relative=str((target/'enrollment.json').relative_to(repo))
+        run(['git','-C',str(repo),'add','--',relative])
+        changed=run(['git','-C',str(repo),'diff','--cached','--name-only']).decode().splitlines()
+        if changed:
+            if changed!=[relative]: raise RuntimeError('unexpected staged paths; enrollment retained')
+            run(['git','-C',str(repo),'commit','--only','-m','Add Android enrollment '+args.name,'--',relative])
+        print(state+' for '+args.name+'. No live peer was added.')
+        print('Enrollment: '+str(target/'enrollment.json'))
+        print('QR: '+str(target/'enrollment.svg'))
+        print('Import on the phone, then return only its public reply for authorization.')
+        if args.qr:
+            key_capacity()
+            qr=container(settings,['-t','ANSIUTF8','-l','M','-m','4','-r','/enrollment/enrollment.json','-o','-'],render=target)
+            sys.stdout.flush();sys.stdout.buffer.write(qr);sys.stdout.buffer.flush()
+
+
+if __name__=='__main__':
+    try: main()
+    except RuntimeError as error:
+        print('stunmesh-enroll: '+str(error),file=sys.stderr);sys.exit(1)
+    except (OSError,ValueError,KeyError,TypeError,subprocess.TimeoutExpired):
+        print('stunmesh-enroll: refused or failed; private output retained if created; no diagnostic payload printed',file=sys.stderr)
+        sys.exit(1)
