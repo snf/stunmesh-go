@@ -53,24 +53,6 @@ services:
     pids_limit: 64
     mem_limit: 32m
     logging: {driver: journald}
-  vpn-syncthing:
-    # This listener can be prepared before enrollment; it cannot create or
-    # authorize a Syncthing peer. No GUI/API forward exists.
-    image: "${STUNMESH_IMAGE:?Set the verified local image digest}"
-    pull_policy: never
-    container_name: stunmesh-syncthing
-    network_mode: "service:vpn"
-    depends_on: [vpn]
-    entrypoint: [/bin/busybox, nc]
-    command: [-lk, -s, 10.77.0.1, -p, "22000", -e, /bin/busybox, nc, 169.254.1.2, "22000"]
-    user: "0:0"
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    read_only: true
-    restart: "no"
-    pids_limit: 64
-    mem_limit: 32m
-    logging: {driver: journald}
   vpn-smb:
     image: "${STUNMESH_IMAGE:?Set the verified local image digest}"
     pull_policy: never

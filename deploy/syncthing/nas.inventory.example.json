@@ -1,0 +1,34 @@
+{
+  "devices": {
+    "nas": "REPLACE_WITH_NAS_PUBLIC_DEVICE_ID",
+    "laptop": "REPLACE_WITH_LAPTOP_PUBLIC_DEVICE_ID",
+    "android": "REPLACE_WITH_ANDROID_PUBLIC_DEVICE_ID"
+  },
+  "folders": {
+    "shared": {
+      "path": "/android-device/syncs",
+      "type": "sendreceive",
+      "devices": [
+        "nas",
+        "laptop",
+        "android"
+      ]
+    },
+    "projects": {
+      "path": "/data/projects",
+      "type": "sendreceive",
+      "devices": [
+        "nas",
+        "laptop"
+      ]
+    },
+    "android-camera": {
+      "path": "/android-device/dcim",
+      "type": "receiveonly",
+      "devices": [
+        "nas",
+        "android"
+      ]
+    }
+  }
+}

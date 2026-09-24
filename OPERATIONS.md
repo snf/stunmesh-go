@@ -11,4 +11,9 @@ This public repository contains software and generic deployment examples. Privat
 
 Publishing this repository does not enroll peers, install a client, alter a NAS, rotate live credentials or enable backup. Complete the [device/service acceptance plan](DEVICE_TESTS.md) for the actual environment. The [release guide](RELEASES.md) identifies the verified container and companion Android APK.
 
+The [Syncthing VPN-only setup](deploy/syncthing/README.md) supersedes direct LAN
+publication and the old TCP forwarding overlay. It includes extensible device/
+folder inventories, the large-volume record and the remaining Android VPN-loss
+enforcement gate. Production stays disabled until its prerequisites are met.
+
 Android enrollment is available as a [single server-side command](deploy/enrollment/README.md), using a separate offline helper image. It generates a proposal and private QR; phone authorization and coordinated discovery migration remain separate.

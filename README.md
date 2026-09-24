@@ -41,6 +41,10 @@ not new persistent services. This is not a fully containerized management layer.
 No management-container migration or exemption from a site's dependency policy
 is implied by this documentation. See the enrollment guide for the exact boundary.
 
+[Syncthing setup](deploy/syncthing/README.md) uses the VPN only, with no direct
+LAN/public sync port, and an extensible device/folder inventory. The guide records
+the volume prerequisite and the remaining Android VPN-loss enforcement check.
+
 ## Security record
 
 - [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md): progress, commits and validation evidence.

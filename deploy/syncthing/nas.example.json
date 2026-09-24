@@ -8,5 +8,6 @@
   "mounts": {
     "/android-device": "/srv/data/device-backups/android-device",
     "/data/projects": "/srv/data/projects"
-  }
+  },
+  "vpn_container": "stunmesh-trial"
 }

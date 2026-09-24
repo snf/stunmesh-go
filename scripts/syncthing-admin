@@ -34,7 +34,7 @@ def load_xml(path):
     if root.tag!='configuration': raise RuntimeError('not a Syncthing configuration')
     return root
 
-def harden(root,gui_enabled=False):
+def harden(root,gui_enabled=False,listen_address=""):
     gui=root.find('gui');options=root.find('options')
     if gui is None or options is None or not gui.findtext('user') or not (gui.findtext('password') or '').startswith('$2'):
         raise RuntimeError('generate with a native authenticated GUI password first')
@@ -43,7 +43,7 @@ def harden(root,gui_enabled=False):
     for name in ('globalAnnounceEnabled','localAnnounceEnabled','relaysEnabled','natEnabled','startBrowser','crashReportingEnabled','upgradeToPreReleases'):
         set_text(options,name,'false')
     set_text(options,'urAccepted','-1');set_text(options,'autoUpgradeIntervalH','0')
-    set_text(options,'listenAddress','tcp://0.0.0.0:22000')
+    set_text(options,'listenAddress',listen_address)
     for folder in list(root.findall('folder')):
         if folder.get('id')=='default': root.remove(folder);continue
         set_text(folder,'paused','true')
@@ -63,24 +63,64 @@ def identity(value):
     if not DEVICE.fullmatch(result): raise RuntimeError('invalid public device-ID shape; native Syncthing also verifies its checksum')
     return result
 
-def pair(root,role,own,ids):
-    if len(set(ids.values()))!=3 or ids[role]!=own: raise RuntimeError('exactly three distinct identities, including this local identity, are required')
+def inventory(value,role):
+    """An explicit local inventory replaces device-count and folder templates."""
+    if set(value)!={'devices','folders'} or not isinstance(value['devices'],dict) or not isinstance(value['folders'],dict):
+        raise RuntimeError('inventory needs devices and folders mappings')
+    devices=value['devices'];folders=value['folders']
+    if 'nas' not in devices or role not in devices or len(devices)<2 or not folders:
+        raise RuntimeError('inventory requires the NAS, local device and selected folders')
+    if any(not re.fullmatch(r'[a-z][a-z0-9-]{0,31}',name) for name in devices):
+        raise RuntimeError('invalid device label')
+    ids={name:identity(device) for name,device in devices.items()}
+    if len(set(ids.values()))!=len(ids): raise RuntimeError('device identities must be distinct')
+    # Clients sync via the NAS, not directly with other phones/laptops.
+    if role!='nas' and set(ids)!={'nas',role}:
+        raise RuntimeError('client inventory must contain only itself and the NAS')
+    paths=[]
+    for fid,folder in folders.items():
+        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}',fid) or set(folder)!={'path','type','devices'}:
+            raise RuntimeError('invalid folder inventory')
+        path=Path(folder['path']);members=folder['devices']
+        if not path.is_absolute() or str(path)!=folder['path'] or '..' in path.parts or path==Path('/'):
+            raise RuntimeError('folder paths must be canonical absolute paths')
+        if folder['type'] not in ('sendreceive','sendonly','receiveonly'):
+            raise RuntimeError('unsupported folder direction')
+        if not isinstance(members,list) or len(set(members))!=len(members) or not {role,'nas'}<=set(members) or not set(members)<=set(ids) or len(members)<2:
+            raise RuntimeError('folder membership must explicitly include local device and NAS')
+        if any(path==other or path in other.parents or other in path.parents for other in paths):
+            raise RuntimeError('overlapping sync roots are not supported')
+        paths.append(path)
+    return {'devices':ids,'folders':folders}
+
+
+def device_policy(device,role,name):
+    # dynamic resolves to no addresses with both discovery mechanisms disabled:
+    # the NAS passively accepts explicitly enrolled clients over its WG listener.
+    set_text(device,'address','tcp://10.77.0.1:22000' if role!='nas' and name=='nas' else 'dynamic')
+    set_text(device,'allowedNetwork','10.77.0.0/24')
+    device.set('introducer','false')
+    set_text(device,'autoAcceptFolders','false')
+
+
+def pair(root,role,own,value):
+    plan=inventory(value,role);ids=plan['devices']
+    if ids[role]!=own: raise RuntimeError('inventory does not match the local native identity')
+    previous={folder.get('id'):folder for folder in root.findall('folder')}
     for item in list(root.findall('device'))+list(root.findall('folder')): root.remove(item)
-    peers=['nas','laptop','android'] if role=='nas' else ['nas','laptop']
-    for peer in peers:
-        device=ET.SubElement(root,'device',{'id':ids[peer],'name':{'android':'android-device'}.get(peer,peer),'compression':'metadata','introducer':'false','autoAcceptFolders':'false'})
-        set_text(device,'address','tcp://10.77.0.1:22000' if peer=='nas' and role=='laptop' else 'dynamic')
-        set_text(device,'paused','true')
-    folders=[('shared','/android-device/syncs','sendreceive',['nas','laptop','android']),
-             ('projects','/data/projects','sendreceive',['nas','laptop'])]
-    if role=='nas': folders.append(('android-camera','/android-device/dcim','receiveonly',['nas','android']))
+    for name,device_id in ids.items():
+        device=ET.SubElement(root,'device',{'id':device_id,'name':name,'compression':'metadata'})
+        device_policy(device,role,name)
     default=root.find('defaults/folder')
-    for fid,path,kind,devices in folders:
-        folder=copy.deepcopy(default) if default is not None else ET.Element('folder')
-        folder.attrib.update({'id':fid,'label':fid,'path':path,'type':kind,'rescanIntervalS':'3600','fsWatcherEnabled':'true','fsWatcherDelayS':'10'})
+    for fid,settings in plan['folders'].items():
+        # Adding a device must not discard an existing folder's versioning policy.
+        source=previous.get(fid)
+        if source is None: source=default
+        folder=copy.deepcopy(source) if source is not None else ET.Element('folder')
+        folder.attrib.update({'id':fid,'label':fid,'path':settings['path'],'type':settings['type'],
+                              'rescanIntervalS':'3600','fsWatcherEnabled':'true','fsWatcherDelayS':'10'})
         for d in list(folder.findall('device')): folder.remove(d)
-        for d in devices:
-            if d in peers: ET.SubElement(folder,'device',{'id':ids[d]})
+        for name in settings['devices']: ET.SubElement(folder,'device',{'id':ids[name]})
         set_text(folder,'paused','true');root.append(folder)
     return harden(root)
 
@@ -88,6 +128,7 @@ def args_for(root,state):
     return ['--rm','--pull=never','--userns=keep-id','--user',str(os.getuid())+':'+str(os.getgid()),
             '--cap-drop=all','--security-opt=no-new-privileges','--read-only','--umask=0077',
             '--no-healthcheck','--image-volume=ignore','--unsetenv=STHOMEDIR','--unsetenv=STGUIADDRESS',
+            '--env','STNOUPGRADE=1',
             '--pids-limit=128','--entrypoint=/bin/syncthing',
             '--mount',mount_argument(root/'config','/config'),
             '--mount',mount_argument(state,'/state'),
@@ -100,8 +141,8 @@ def main():
     parser.add_argument('--state-dir',type=Path)
     parser.add_argument('--volume-file',type=Path)
     parser.add_argument('--port',default=8384,type=int)
-    parser.add_argument('--role',choices=['nas','laptop'])
-    for field in ('nas','laptop','android'): parser.add_argument('--'+field+'-id',type=Path)
+    parser.add_argument('--role',help='local inventory device label, e.g. nas or laptop')
+    parser.add_argument('--inventory',type=Path,help='reviewed public device IDs and local folder memberships')
     a=parser.parse_args();os.umask(0o077)
     if os.geteuid()==0: raise RuntimeError('run as the rootless service user')
     root=a.root.resolve();state=(a.state_dir or root/'state').resolve()
@@ -132,11 +173,10 @@ def main():
         inactive([root/'config',state])
         path=root/'config/config.xml';tree=harden(load_xml(path))
         if a.action=='pair':
-            if not a.role or not all((a.nas_id,a.laptop_id,a.android_id)):
-                raise RuntimeError('supply --role and all three public ID files')
-            ids={peer:identity(getattr(a,peer+'_id').read_text()) for peer in ('nas','laptop','android')}
-            tree=pair(tree,a.role,identity((root/'device-id.txt').read_text()),ids)
-            atomic(root/'peer-ids.json',(json.dumps(ids,indent=2)+'\n').encode())
+            if not a.role or not a.inventory: raise RuntimeError('supply --role and --inventory')
+            plan=inventory(json.loads(a.inventory.read_text()),a.role)
+            tree=pair(tree,a.role,identity((root/'device-id.txt').read_text()),plan)
+            atomic(root/'inventory.json',(json.dumps(plan,indent=2)+'\n').encode())
         save(path,tree)
         if a.action=='start':
             if not 1024<=a.port<=65535: raise RuntimeError('GUI port outside allowed range')

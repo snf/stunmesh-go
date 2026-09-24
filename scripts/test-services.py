@@ -29,7 +29,7 @@ class Services(unittest.TestCase):
         self.assertEqual(root.findtext('device/paused'),'true')
         self.assertEqual(root.findtext('folder/paused'),'true')
         self.assertEqual(len(root.findall('folder')),1)
-        self.assertEqual([n.text for n in root.findall('options/listenAddress')],['tcp://0.0.0.0:22000'])
+        self.assertEqual([n.text for n in root.findall('options/listenAddress')],[''])
         for option in ('globalAnnounceEnabled','localAnnounceEnabled','relaysEnabled','natEnabled','crashReportingEnabled'):
             self.assertEqual(root.findtext('options/'+option),'false')
         self.assertEqual(root.find('folder').get('rescanIntervalS'),'3600')

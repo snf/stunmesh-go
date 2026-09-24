@@ -1,0 +1,6 @@
+{
+  "mountpoint": "/srv/data",
+  "source": "/dev/mapper/REPLACE_WITH_UNLOCKED_VOLUME",
+  "fstype": "REPLACE_WITH_FILESYSTEM_TYPE",
+  "uuid": "REPLACE_WITH_VERIFIED_FILESYSTEM_UUID"
+}

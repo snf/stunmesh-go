@@ -8,5 +8,6 @@
   "mounts": {
     "/android-device/syncs": "/ABSOLUTE/OWNER/SHARED-DIRECTORY",
     "/data/projects": "/ABSOLUTE/OWNER/PROJECTS-DIRECTORY"
-  }
+  },
+  "vpn_container": "stunmesh-client"
 }

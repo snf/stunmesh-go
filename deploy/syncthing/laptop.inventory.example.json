@@ -1,0 +1,24 @@
+{
+  "devices": {
+    "nas": "REPLACE_WITH_NAS_PUBLIC_DEVICE_ID",
+    "laptop": "REPLACE_WITH_LAPTOP_PUBLIC_DEVICE_ID"
+  },
+  "folders": {
+    "shared": {
+      "path": "/android-device/syncs",
+      "type": "sendreceive",
+      "devices": [
+        "nas",
+        "laptop"
+      ]
+    },
+    "projects": {
+      "path": "/data/projects",
+      "type": "sendreceive",
+      "devices": [
+        "nas",
+        "laptop"
+      ]
+    }
+  }
+}
