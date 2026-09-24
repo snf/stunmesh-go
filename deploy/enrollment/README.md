@@ -37,7 +37,19 @@ update. This helper does not edit/restart live services. New enrollment targets
 `stunmesh-enroll-v2`; older discovery namespaces still require the coordinated
 [endpoint migration](../../PUBLICATION_TRANSITION.md).
 
+After authorization, use the [connection checklist](TESTING.md). Do not use a
+successful QR import or a running VPN notification as proof of connectivity.
+
 ## Installation and confinement
+
+**Current host dependencies:** the launcher is Python 3, imports the adjacent
+`nas_common.py`, and invokes host Git and Podman. Python handles file validation,
+locking and orchestration; host Git commits the canonical enrollment. Only
+native provisioning, WireGuard PSK generation and QR encoding execute in the
+offline container. Other service helpers may also use host `podman-compose`.
+No new persistent host daemon is installed. Moving management code into a
+container has been discussed but has not been implemented; this arrangement
+does not meet a strict "no script dependencies on the host" requirement.
 
 Build/load the dedicated three-executable image, and pin its configuration ID
 in the private settings copied from `settings.example.json`. Install

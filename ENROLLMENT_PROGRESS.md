@@ -28,3 +28,11 @@ unchanged. No phone software, firewall or live peer changed.
 
 Known-secret scanning passed for public source/history and all three enrollment
 executables. The live VPN image and Android APK were not rebuilt or changed.
+
+Documentation follow-up: added a release-phone checklist covering explicit
+server authorization, matching discovery versions, real-service traffic,
+VPN-off control, mobile/hotspot and return-home checks. Clarified that current
+administration scripts use host Python/Git (and some use podman-compose);
+containerizing those scripts remains unresolved. No runtime or dependency
+change was made as part of this documentation update. Site observations belong
+only in the private deployment repository.
