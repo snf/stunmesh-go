@@ -6,6 +6,12 @@ and permissions are approved. Do not start the legacy Compose service.
 
 ## Transport policy
 
+Apply this policy before the first online Syncthing start. Configure the Android
+app offline (airplane mode with Wi-Fi off) so its defaults cannot announce the
+device before discovery/relays are disabled. Keep the engine stopped until its
+settings and VPN-loss enforcement have been reviewed. Container identity
+generation already runs with networking disabled.
+
 | Component | Required configuration |
 | --- | --- |
 | NAS | Join the existing rootless VPN container's network namespace; listen only on `tcp://10.77.0.1:22000`. No Podman port publication or TCP forwarder. |
