@@ -36,3 +36,15 @@ administration scripts use host Python/Git (and some use podman-compose);
 containerizing those scripts remains unresolved. No runtime or dependency
 change was made as part of this documentation update. Site observations belong
 only in the private deployment repository.
+
+Startup follow-up: the old container entrypoint accepted only the original
+trial peer addresses, so newly allocated phones could not receive a persistent
+return route. The guard now accepts explicitly selected canonical host `/32`s
+in the existing trial subnet; it adds no default/subnet route or peer authority.
+Three regression tests cover all 254 permitted host addresses, invalid/broad/
+outside routes, shell syntax and interface-address restrictions. The candidate
+also passed an offline rootless kernel WireGuard/startup test with existing
+peers and a newly enrolled phone, using the deployed daemon version. A read-only
+startup-script bind permits deployment without changing the discovery namespace;
+published image bytes remain unchanged. Device traffic and coordinated endpoint
+migration are separate acceptance gates, not established by the startup test.

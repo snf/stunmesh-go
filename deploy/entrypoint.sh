@@ -1,13 +1,16 @@
 #!/bin/sh
-set -eu
+set -efu
 umask 077
-# Preserve the approved isolated trial addressing. Edit these explicit public
-# ranges in Git when adding different service addresses; no firewall hooks.
+# Preserve the isolated trial subnet. Only explicit host routes are accepted;
+# enrollment can allocate new phone addresses without changing this script.
 : "${TUNNEL_ADDRESS:?Set the approved tunnel /32}"
 : "${TUNNEL_ROUTES:?Set the approved peer /32 routes}"
 case "$TUNNEL_ADDRESS" in 10.77.0.1/32|10.77.0.254/32) ;; *) exit 2 ;; esac
 for route in $TUNNEL_ROUTES; do
-    case "$route" in 10.77.0.1/32|10.77.0.2/32|10.77.0.21/32|10.77.0.23/32|10.77.0.253/32|10.77.0.254/32) ;; *) exit 2 ;; esac
+    case "$route" in
+        10.77.0.[1-9]/32|10.77.0.[1-9][0-9]/32|10.77.0.1[0-9][0-9]/32|10.77.0.2[0-4][0-9]/32|10.77.0.25[0-4]/32) ;;
+        *) exit 2 ;;
+    esac
 done
 test -r /config/wg0.conf
 test -r /config/stunmesh.yml

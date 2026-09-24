@@ -2,7 +2,17 @@
 
 No NAS changes are made by the local build. The previously inspected arrangement was `/srv/containers/wireguard-trial`, rootless Podman called as `operator`; container UID 0 mapped to host `operator`. Recheck the current service/process UID/GID maps before deployment. Never use `sudo podman`, blanket chown/relabel, host networking, a runtime socket mount or `--privileged`. Preserve Samba/NFS, the encrypted-mount startup script and the disabled Restic configuration.
 
-The template uses the existing trial addresses: NAS `10.77.0.1/32`, phone `.2/32`, laptop `.254/32`. The external client test used a temporary identity at `.254`, revoked before enrolling the laptop-only identity. The entrypoint permits only these explicit addresses plus the prior `.253/32` trial peer; change that public allowlist deliberately in Git if needed. Client destinations must match the selected server services.
+The template uses the existing trial addresses: NAS `10.77.0.1/32`, phone `.2/32`, laptop `.254/32`. The external client test used a temporary identity at `.254`, revoked before enrolling the laptop-only identity. The entrypoint accepts only explicitly listed `10.77.0.1–254/32` host routes; it does not install a subnet or default route. Add each approved phone address to the private `TUNNEL_ROUTES` list as well as its WireGuard and discovery peer entries. Route syntax does not authorize a peer: WireGuard still requires its exact public key, PSK and AllowedIPs. Client destinations must match the selected server services.
+
+Previously built images have a fixed address allowlist that excludes newly
+allocated phones. Rebuild and verify the image with the updated entrypoint, or
+mount this reviewed `entrypoint.sh` read-only at `/entrypoint.sh` in the VPN
+container. The latter changes only namespace startup and preserves the pinned
+daemon/discovery version while a coordinated endpoint migration is pending.
+Use an absolute private source path with `create_host_path: false`, retain the
+previous Compose configuration for rollback, and recreate the full VPN/forwarder
+group. No script dependency runs on the host: the existing container shell
+executes it. Do not infer that editing this repository changed a released image.
 
 **Two different UDP ports are required:** kernel WG listens on `51824`; the shared STUN/WG proxy listens on `51826`. Publish both only on the NAS LAN address, with identical container/host port numbers. The phone's explicit LAN bootstrap endpoint is `NAS_LAN_IP:51824`; public discovery advertises the proxy socket. Using the same wildcard port for both cannot work. No `NET_RAW` is needed. Kernel WG creation requires `NET_ADMIN` in the owned network namespace; it does not grant host `NET_ADMIN` under rootless Podman.
 
