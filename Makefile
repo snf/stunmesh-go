@@ -1,5 +1,4 @@
-# Use the pinned toolchain, normally through scripts/sandbox.py. No installer,
-# release uploader, process plugins or automatic toolchain downloads.
+# Build and test the Go source. Deployment tooling lives separately.
 APP_VERSION ?= local
 .PHONY: build test vet core provision
 build:

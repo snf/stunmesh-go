@@ -79,7 +79,7 @@ func TestNoSecretSummaryAndExclusiveOutput(t *testing.T) {
 }
 func TestHostLifecycleInIsolatedNetwork(t *testing.T) {
 	if os.Getenv("STUNMESH_ISOLATED_TEST_NETWORK") != "1" {
-		t.Skip("requires scripts/sandbox.py --net-admin")
+		t.Skip("requires an isolated NET_ADMIN test environment")
 	}
 	wg := "/artifacts/wg"
 	ip := []string{"/artifacts/image-tools/ld-musl-x86_64.so.1", "/artifacts/image-tools/busybox", "ip"}
