@@ -91,8 +91,9 @@ func (p Profile) Validate() error {
 	if k, err := validation.Key(p.PresharedKey); err != nil || k == [32]byte{} {
 		return errors.New("invalid preshared key")
 	}
-	if p.Address != "10.77.0.253/32" {
-		return errors.New("this client reserves address 10.77.0.253/32")
+	client, err := netip.ParsePrefix(p.Address)
+	if err != nil || !client.Addr().Is4() || !client.Addr().IsPrivate() || client.Bits() != 32 {
+		return errors.New("Linux client address must be a private IPv4 /32")
 	}
 	// Reuse the audited enrollment validation for routes, endpoints and discovery.
 	q := provision.Proposal{Schema: provision.Schema, ID: "00000000-0000-4000-8000-000000000001", Name: p.Name,
@@ -107,18 +108,14 @@ func (p Profile) Validate() error {
 	}
 	allowed := map[string]bool{}
 	for _, s := range p.AllowedIPs {
-		switch s {
-		case "10.77.0.1/32", "10.77.0.21/32", "10.77.0.23/32", "10.77.1.0/24":
-		default:
-			return errors.New("unapproved service route")
+		route, err := validation.ServiceRoute(s)
+		if err != nil || !route.Addr().Is4() || !route.Addr().IsPrivate() || route.Contains(client.Addr()) {
+			return errors.New("invalid private service route")
 		}
-		if allowed[s] {
+		if allowed[route.String()] {
 			return errors.New("duplicate route")
 		}
-		allowed[s] = true
-	}
-	if !allowed["10.77.0.1/32"] {
-		return errors.New("NAS service route required")
+		allowed[route.String()] = true
 	}
 	if len(p.Hostnames) == 0 || len(p.Hostnames) > 16 || len(p.LANHostnames) > 16 {
 		return errors.New("hostname count outside bounds")
@@ -135,10 +132,9 @@ func (p Profile) Validate() error {
 			return errors.New("hostname collision")
 		}
 	}
-	lan := netip.MustParsePrefix("192.168.0.0/24")
 	for name, s := range p.LANHostnames {
 		ip, err := netip.ParseAddr(s)
-		if !validName(name) || !strings.HasSuffix(name, "-lan") || err != nil || !lan.Contains(ip) || s == "192.168.0.0" || s == "192.168.0.255" {
+		if !validName(name) || !strings.HasSuffix(name, "-lan") || err != nil || !ip.Is4() || !ip.IsPrivate() {
 			return errors.New("invalid LAN recovery alias")
 		}
 	}

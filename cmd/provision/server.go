@@ -15,9 +15,14 @@ import (
 	"github.com/tjjh89017/stunmesh-go/internal/provision"
 )
 
-// Phone addresses stay separate from NAS service aliases and Linux client slots.
-func phoneAddress(used []string) (string, error) {
-	used = append([]string{"10.77.0.21/32", "10.77.0.23/32"}, used...)
+// Allocate from the /24 containing the explicitly supplied server route.
+// Live peers, service aliases and pending enrollments are all reservations.
+func phoneAddress(serverRoute string, used []string) (string, error) {
+	server, err := netip.ParsePrefix(serverRoute)
+	if err != nil || !server.Addr().Is4() || !server.Addr().IsPrivate() || server.Bits() != 32 {
+		return "", errors.New("first service route must be a private IPv4 /32")
+	}
+	base := server.Addr().As4()
 	prefixes := make([]netip.Prefix, 0, len(used))
 	for _, text := range used {
 		p, err := netip.ParsePrefix(text)
@@ -26,8 +31,8 @@ func phoneAddress(used []string) (string, error) {
 		}
 		prefixes = append(prefixes, p)
 	}
-	for n := 2; n <= 252; n++ {
-		ip := netip.AddrFrom4([4]byte{10, 77, 0, byte(n)})
+	for n := 2; n <= 254; n++ {
+		ip := netip.AddrFrom4([4]byte{base[0], base[1], base[2], byte(n)})
 		free := true
 		for _, p := range prefixes {
 			if p.Contains(ip) {
@@ -68,17 +73,18 @@ func serverNew(args []string) error {
 	if err != nil {
 		return errors.New("cannot validate server configuration")
 	}
+	routeList := strings.Split(*routes, ",")
 	used := server.Public()["peer_addresses"].([]string)
-	used = append(used, strings.Split(*routes, ",")...)
+	used = append(used, routeList...)
 	if *reserved != "" {
 		used = append(used, strings.Split(*reserved, ",")...)
 	}
-	address, err := phoneAddress(used)
+	address, err := phoneAddress(routeList[0], used)
 	if err != nil {
 		return err
 	}
 	p := provision.Proposal{Schema: provision.Schema, ID: provision.NewID(), Name: *name,
-		Address: address, ServerPublicKey: server.PublicKey, AllowedIPs: strings.Split(*routes, ","),
+		Address: address, ServerPublicKey: server.PublicKey, AllowedIPs: routeList,
 		STUN: server.STUN, OpenDHT: server.DHT, Endpoint: *endpoint, Protocol: "ipv4"}
 	if err = p.Validate(); err != nil {
 		return err

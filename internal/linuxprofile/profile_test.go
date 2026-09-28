@@ -32,7 +32,7 @@ func TestBoundary(t *testing.T) {
 	}
 	for name, mutate := range map[string]func(*Profile){
 		"default route":             func(p *Profile) { p.AllowedIPs = []string{"0.0.0.0/0"} },
-		"other destination":         func(p *Profile) { p.AllowedIPs = append(p.AllowedIPs, "192.168.0.0/24") },
+		"public destination":        func(p *Profile) { p.AllowedIPs = append(p.AllowedIPs, "203.0.113.0/24") },
 		"peer collision":            func(p *Profile) { p.Address = "10.77.0.1/32" },
 		"hook":                      func(p *Profile) { p.Endpoint = "192.168.0.10:51824\nPostUp=bad" },
 		"hostname injection":        func(p *Profile) { p.Hostnames = map[string]string{"nas\nlocalhost": "10.77.0.1"} },
@@ -50,6 +50,15 @@ func TestBoundary(t *testing.T) {
 				t.Fatal("accepted unsafe profile")
 			}
 		})
+	}
+	other := fixture()
+	other.Address = "172.20.4.253/32"
+	other.AllowedIPs = []string{"172.20.4.1/32", "172.20.4.21/32"}
+	other.Hostnames = map[string]string{"server": "172.20.4.1"}
+	other.LANHostnames = map[string]string{"server-lan": "10.5.0.10"}
+	b, _ := json.Marshal(other)
+	if _, err := Decode(b); err != nil {
+		t.Fatalf("rejected alternate private site: %v", err)
 	}
 	for _, raw := range []string{strings.Replace(string(good), `"schema":`, `"Schema":`, 1), strings.Replace(string(good), `"name":"laptop"`, `"name":"laptop","Name":"other"`, 1), strings.TrimSuffix(string(good), "}") + `,"command":"bad"}`, string(good) + "{}", `null`, strings.Repeat(" ", MaxBytes+1)} {
 		if _, err := Decode([]byte(raw)); err == nil {

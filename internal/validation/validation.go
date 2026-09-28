@@ -86,7 +86,7 @@ func Prefix(text string) (netip.Prefix, error) {
 	return p, nil
 }
 
-// ServiceRoute deliberately limits this home fork to small service ranges.
+// ServiceRoute deliberately limits profiles to small service ranges.
 // With at most 64 routes/peer and 32 peers, these bounds also prohibit a
 // catch-all assembled from individually non-default routes.
 func ServiceRoute(text string) (netip.Prefix, error) {
